@@ -45,6 +45,9 @@ config :nerves_ssh,
 # Update regulatory_domain to your 2-letter country code E.g., "US"
 #
 # See https://github.com/nerves-networking/vintage_net for more information
+ssid = System.get_env("SSID")
+psk = System.get_env("PSK")
+
 config :vintage_net,
   regulatory_domain: "US",
   config: [
@@ -59,7 +62,7 @@ config :vintage_net,
        type: VintageNetWiFi,
        vintage_net_wifi: %{
          networks: [
-           %{key_mgmt: :wpa_psk, ssid: "EnterYourSSID", psk: "EnterYourPSK"}
+           %{key_mgmt: :wpa_psk, ssid: ssid, psk: psk}
          ]
        }
      }, ipv4: %{method: :dhcp}}
