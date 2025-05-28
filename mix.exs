@@ -50,7 +50,9 @@ defmodule ThermostatNerves.MixProject do
       {:nerves_system_rpi5, "~> 0.2", runtime: false, targets: :rpi5},
       {:vintage_net, "~> 0.13"},
       {:vintage_net_wifi, "~> 0.12"},
-      {:circuits_gpio, "~> 2.1.2"}
+      {:ds18b20_1w, "~> 0.1.2"},
+      {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
+      {:credo, "~> 1.7", only: [:dev, :test], runtime: false}
     ]
   end
 

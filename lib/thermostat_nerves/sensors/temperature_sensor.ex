@@ -1,4 +1,8 @@
 defmodule ThermostatNerves.Sensors.TemperatureSensor do
+  @moduledoc """
+    GenServer for handling the reading of a DS18b20 1 wire temperature sensor. Stores the value of
+    the temperature PropertyTable
+  """
   use GenServer
 
   require Logger
