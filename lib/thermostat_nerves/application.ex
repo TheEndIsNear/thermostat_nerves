@@ -12,6 +12,8 @@ defmodule ThermostatNerves.Application do
         # Children for all targets
         # Starts a worker by calling: ThermostatNerves.Worker.start_link(arg)
         # {ThermostatNerves.Worker, arg},
+        ThermostatNerves.Sensors.TemperatureSensor,
+        {PropertyTable, name: SensorTable}
       ] ++ target_children()
 
     # See https://hexdocs.pm/elixir/Supervisor.html

@@ -1,0 +1,43 @@
+defmodule ThermostatNerves.Sensors.TemperatureSensor do
+  use GenServer
+
+  require Logger
+
+  def start_link(_) do
+    GenServer.start_link(__MODULE__, name: __MODULE__)
+  end
+
+  @impl GenServer
+  def init(_) do
+    [sensor_path] = Ds18b20_1w.list_sensors()
+    {:ok, %{sensor_path: sensor_path, temperature: nil}, {:continue, :read_sensor}}
+  end
+
+  @impl GenServer
+  def handle_continue(:read_sensor, %{sensor_path: sensor_path} = state) do
+    read_sensor(sensor_path)
+
+    schedule_next_read()
+    {:noreply, state}
+  end
+
+  @impl GenServer
+  def handle_info(:read_sensor, %{sensor_path: sensor_path} = state) do
+    read_sensor(sensor_path)
+
+    schedule_next_read()
+    {:noreply, state}
+  end
+
+  defp read_sensor(sensor_path) do
+    case Ds18b20_1w.read_temperature_file(sensor_path) do
+      {:ok, _, temp} ->
+        PropertyTable.put(SensorTable, ["temperature"], temp)
+
+      {:error, sensor, error} ->
+        Logger.error("Error reading sensor #{sensor} #{error}")
+    end
+  end
+
+  defp schedule_next_read, do: Process.send_after(self(), :read_sensor, :timer.seconds(5))
+end
