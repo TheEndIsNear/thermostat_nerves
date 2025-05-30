@@ -52,7 +52,8 @@ defmodule ThermostatNerves.MixProject do
       {:vintage_net_wifi, "~> 0.12"},
       {:ds18b20_1w, "~> 0.1.2"},
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
-      {:credo, "~> 1.7", only: [:dev, :test], runtime: false}
+      {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
+      {:nerves_flutter_support, "~> 1.2.0"}
     ]
   end
 
@@ -63,7 +64,12 @@ defmodule ThermostatNerves.MixProject do
       # See https://hexdocs.pm/nerves_pack/readme.html#erlang-distribution
       cookie: "#{@app}_cookie",
       include_erts: &Nerves.Release.erts/0,
-      steps: [&Nerves.Release.init/1, :assemble],
+      steps: [
+        &Nerves.Release.init/1,
+        &NervesFlutterSupport.InstallRuntime.run/1,
+        &NervesFlutterSupport.BuildFlutterApp.run/1,
+        :assemble
+      ],
       strip_beams: Mix.env() == :prod or [keep: ["Docs"]]
     ]
   end

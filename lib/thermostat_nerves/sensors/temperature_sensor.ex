@@ -13,16 +13,17 @@ defmodule ThermostatNerves.Sensors.TemperatureSensor do
 
   @impl GenServer
   def init(_) do
-    [sensor_path] = Ds18b20_1w.list_sensors()
-    {:ok, %{sensor_path: sensor_path, temperature: nil}, {:continue, :read_sensor}}
+    {:ok, %{sensor_path: "", temperature: nil}, {:continue, :read_sensor}}
   end
 
   @impl GenServer
-  def handle_continue(:read_sensor, %{sensor_path: sensor_path} = state) do
+  def handle_continue(:read_sensor, state) do
+    sensor_path = list_sensor()
+    Logger.info(sensor_path)
     read_sensor(sensor_path)
 
     schedule_next_read()
-    {:noreply, state}
+    {:noreply, %{state | sensor_path: sensor_path}}
   end
 
   @impl GenServer
@@ -31,6 +32,17 @@ defmodule ThermostatNerves.Sensors.TemperatureSensor do
 
     schedule_next_read()
     {:noreply, state}
+  end
+
+  defp list_sensor do
+    case Ds18b20_1w.list_sensors() do
+      [sensor_path] ->
+        sensor_path
+
+      _ ->
+        :timer.sleep(100)
+        list_sensor()
+    end
   end
 
   defp read_sensor(sensor_path) do
