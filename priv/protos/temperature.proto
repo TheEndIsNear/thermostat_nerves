@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+import "google/api/annotations.proto";
+
+package ThermostatNerves;
+
+message Empty {}
+
+service RPC {
+	rpc sendTemperature(Empty) returns (TemperatureReading) {
+		option (google.api.http) = {
+			get: "/temperature"
+		};
+	}
+}
+
+message TemperatureReading {
+	float value = 1;  // Temperature value
+	string unit = 2;  // "C" for Celsius, "F" for Fahrenheit
+}
+

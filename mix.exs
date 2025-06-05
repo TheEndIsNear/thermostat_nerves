@@ -51,9 +51,11 @@ defmodule ThermostatNerves.MixProject do
       {:vintage_net, "~> 0.13"},
       {:vintage_net_wifi, "~> 0.12"},
       {:ds18b20_1w, "~> 0.1.2"},
+      {:nerves_flutter_support, "~> 1.2.0"},
+      {:grpc, "~> 0.10"},
+      {:protobuf_generate, "~> 0.1.1"},
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
-      {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
-      {:nerves_flutter_support, "~> 1.2.0"}
+      {:credo, "~> 1.7", only: [:dev, :test], runtime: false}
     ]
   end
 

@@ -17,7 +17,9 @@ defmodule ThermostatNerves.Application do
         # Starts a worker by calling: ThermostatNerves.Worker.start_link(arg)
         # {ThermostatNerves.Worker, arg},
         {PropertyTable, name: SensorTable},
-        ThermostatNerves.Sensors.TemperatureSensor
+        ThermostatNerves.Sensors.TemperatureSensor,
+        {GRPC.Server.Supervisor,
+         endpoint: ThermostatNerves.RPC.Endpoint, prot: 50051, start_server: true}
       ] ++ target_children() ++ flutter_children()
 
     # See https://hexdocs.pm/elixir/Supervisor.html
