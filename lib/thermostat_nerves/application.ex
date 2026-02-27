@@ -19,8 +19,8 @@ defmodule ThermostatNerves.Application do
         {PropertyTable, name: SensorTable},
         ThermostatNerves.Sensors.TemperatureSensor,
         {GRPC.Server.Supervisor,
-         endpoint: ThermostatNerves.RPC.Endpoint, prot: 50051, start_server: true}
-      ] ++ target_children() ++ flutter_children()
+         endpoint: ThermostatNerves.Endpoint, port: 50051, start_server: true}
+      ] ++ target_children()
 
     # See https://hexdocs.pm/elixir/Supervisor.html
     # for other strategies and supported options
@@ -33,19 +33,13 @@ defmodule ThermostatNerves.Application do
     defp target_children do
       [
         # Children that only run on the host during development or test.
-        # In general, prefer using `config/host.exs` for differences.
-        #
-        # Starts a worker by calling: Host.Worker.start_link(arg)
-        # {Host.Worker, arg},
       ]
     end
   else
     defp target_children do
       [
         # Children for all targets except host
-        # Starts a worker by calling: Target.Worker.start_link(arg)
-        # {Target.Worker, arg},
-      ]
+      ] ++ flutter_children()
     end
   end
 
@@ -58,6 +52,11 @@ defmodule ThermostatNerves.Application do
 
     launch_env = %{
       "FLUTTER_DRM_DEVICE" => "/dev/dri/#{dri_card}",
+      # Override GBM_BACKENDS_PATH to use the system's DRI backend instead of the
+      # (missing) one in nerves_flutter_support's priv dir
+      "GBM_BACKENDS_PATH" => "/usr/lib/gbm",
+      # Append /usr/lib so the system's dri_gbm.so can find its matching libgallium
+      "LD_LIBRARY_PATH" => "/usr/lib:#{:code.priv_dir(:nerves_flutter_support)}/lib",
       "GALLIUM_HUD" => "cpu+fps",
       "GALLIUM_HUD_PERIOD" => "0.25",
       "GALLIUM_HUD_SCALE" => "3",

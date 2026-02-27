@@ -13,9 +13,12 @@ defmodule ThermostatNerves.MixProject do
       archives: [nerves_bootstrap: "~> 1.13"],
       start_permanent: Mix.env() == :prod,
       deps: deps(),
-      releases: [{@app, release()}],
-      preferred_cli_target: [run: :host, test: :host]
+      releases: [{@app, release()}]
     ]
+  end
+
+  def cli do
+    [preferred_targets: [run: :host, test: :host]]
   end
 
   # Run "mix help compile.app" to learn about applications.
@@ -30,7 +33,7 @@ defmodule ThermostatNerves.MixProject do
   defp deps do
     [
       # Dependencies for all targets
-      {:nerves, "~> 1.10", runtime: false},
+      {:nerves, "~> 1.13", runtime: false},
       {:shoehorn, "~> 0.9.1"},
       {:ring_logger, "~> 0.11.0"},
       {:toolshed, "~> 0.4.0"},
@@ -47,12 +50,13 @@ defmodule ThermostatNerves.MixProject do
       # bumps to Nerves systems. Since these include Linux kernel and Erlang
       # version updates, please review their release notes in case
       # changes to your application are needed.
-      {:nerves_system_rpi5, "~> 0.2", runtime: false, targets: :rpi5},
+      {:nerves_system_rpi5, "~> 0.8", runtime: false, targets: :rpi5},
       {:vintage_net, "~> 0.13"},
       {:vintage_net_wifi, "~> 0.12"},
       {:ds18b20_1w, "~> 0.1.2"},
-      {:nerves_flutter_support, "~> 1.2.0"},
-      {:grpc, "~> 0.10"},
+      {:nerves_flutter_support, "~> 1.3.0"},
+      {:grpc, "~> 0.11"},
+      {:protobuf, "~> 0.15"},
       {:protobuf_generate, "~> 0.1.1"},
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false}
