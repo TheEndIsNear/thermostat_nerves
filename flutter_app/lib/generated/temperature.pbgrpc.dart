@@ -34,11 +34,19 @@ class RPCClient extends $grpc.Client {
       '/ThermostatNerves.RPC/sendTemperature',
       ($0.Empty value) => value.writeToBuffer(),
       ($core.List<$core.int> value) => $0.TemperatureReading.fromBuffer(value));
+  static final _$streamTemperature = $grpc.ClientMethod<$0.Empty, $0.TemperatureReading>(
+      '/ThermostatNerves.RPC/streamTemperature',
+      ($0.Empty value) => value.writeToBuffer(),
+      ($core.List<$core.int> value) => $0.TemperatureReading.fromBuffer(value));
 
   RPCClient(super.channel, {super.options, super.interceptors});
 
   $grpc.ResponseFuture<$0.TemperatureReading> sendTemperature($0.Empty request, {$grpc.CallOptions? options}) {
     return $createUnaryCall(_$sendTemperature, request, options: options);
+  }
+
+  $grpc.ResponseStream<$0.TemperatureReading> streamTemperature($0.Empty request, {$grpc.CallOptions? options}) {
+    return $createStreamingCall(_$streamTemperature, $async.Stream.fromIterable([request]), options: options);
   }
 }
 
@@ -54,11 +62,23 @@ abstract class RPCServiceBase extends $grpc.Service {
         false,
         ($core.List<$core.int> value) => $0.Empty.fromBuffer(value),
         ($0.TemperatureReading value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.Empty, $0.TemperatureReading>(
+        'streamTemperature',
+        streamTemperature_Pre,
+        false,
+        true,
+        ($core.List<$core.int> value) => $0.Empty.fromBuffer(value),
+        ($0.TemperatureReading value) => value.writeToBuffer()));
   }
 
   $async.Future<$0.TemperatureReading> sendTemperature_Pre($grpc.ServiceCall $call, $async.Future<$0.Empty> $request) async {
     return sendTemperature($call, await $request);
   }
 
+  $async.Stream<$0.TemperatureReading> streamTemperature_Pre($grpc.ServiceCall $call, $async.Future<$0.Empty> $request) async* {
+    yield* streamTemperature($call, await $request);
+  }
+
   $async.Future<$0.TemperatureReading> sendTemperature($grpc.ServiceCall call, $0.Empty request);
+  $async.Stream<$0.TemperatureReading> streamTemperature($grpc.ServiceCall call, $0.Empty request);
 }

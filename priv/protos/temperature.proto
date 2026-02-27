@@ -12,6 +12,8 @@ service RPC {
 			get: "/temperature"
 		};
 	}
+
+	rpc streamTemperature(Empty) returns (stream TemperatureReading) {}
 }
 
 message TemperatureReading {
