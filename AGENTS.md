@@ -99,6 +99,27 @@ Run before submitting changes:
 mix format --check-formatted && mix credo --strict && mix test && mix compile --warnings-as-errors
 ```
 
+### CI (GitHub Actions)
+
+CI runs automatically on every push and pull request via `.github/workflows/ci.yml`.
+It uses `MIX_TARGET=host` — firmware builds are not run in CI.
+
+Two jobs run in parallel:
+
+- **`check`** — format, credo --strict, compile --warnings-as-errors, mix test.
+  Fast (~1 min with warm cache). This is the blocking gate for PRs.
+- **`dialyzer`** — runs independently so it never delays the `check` job.
+  First run is slow (~5–10 min) while the PLT is built; subsequent runs use
+  the cache and are fast.
+
+PLTs are stored in `priv/plts/` (gitignored) and configured in `mix.exs`:
+
+```elixir
+dialyzer: [plt_file: {:no_warn, "priv/plts/project.plt"}]
+```
+
+The cache key is based on `mix.lock`, so a dep change triggers a PLT rebuild.
+
 ### Firmware (target device)
 
 ```bash
