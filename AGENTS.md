@@ -21,18 +21,29 @@ lib/
     application.ex                  # OTP Application & supervision tree
     endpoint.ex                     # gRPC endpoint (routes to Server)
     sensors/
+      temperature_client.ex         # Protocol: list/1 and read/2
+      ds18b20_impl.ex               # Real hardware impl (target only)
+      mock_impl.ex                  # Host/dev/test impl (sinusoidal ~18–26°C)
       temperature_sensor.ex         # DS18B20 GenServer (reads sensor, writes PropertyTable)
     temperature/
       server.ex                     # gRPC service implementation (reads PropertyTable)
   temperature.pb.ex                 # GENERATED -- protobuf structs & service definition
 config/
   config.exs                        # Common config (loads host.exs or target.exs)
-  host.exs                          # Dev/test overrides
-  target.exs                        # Device networking, SSH, mDNS, WiFi
+  host.exs                          # Dev/test overrides (sets :temperature_client to MockImpl)
+  target.exs                        # Device networking, SSH, mDNS, WiFi (sets :temperature_client to Ds18b20Impl)
 priv/protos/
   temperature.proto                 # Protobuf service definition (source of truth)
 flutter_app/                        # Flutter UI (thermostat_ui), built during release
-test/                               # ExUnit tests, mirrors lib/ structure
+test/
+  support/
+    stub_client.ex                  # StubClient struct + TemperatureClient defimpl for tests
+  thermostat_nerves/
+    sensors/
+      mock_impl_test.exs
+      temperature_sensor_test.exs
+    temperature/
+      server_test.exs
 ```
 
 ## Supervision Tree
@@ -179,6 +190,20 @@ Follow this order within each module:
 - Use `use ExUnit.Case` in test modules.
 - Use `doctest ModuleName` to run doctests.
 - Tests are named descriptively: `test "description" do ... end`.
+- Add `test/support` to `elixirc_paths(:test)` in `mix.exs` for shared test helpers.
+- Set `consolidate_protocols: Mix.env() != :test` in `mix.exs` to allow `defimpl` in test support files.
+- Start `GRPC.Client.Supervisor` in `test/test_helper.exs` for tests that open gRPC client channels.
+
+### gRPC Client Return Types
+
+- **Unary RPCs** (`Stub.send_temperature/2`) return `{:ok, %TemperatureReading{}}` — pattern match directly.
+- **Server-streaming RPCs** (`Stub.stream_temperature/2`) return `{:ok, Enumerable.t()}` — you must unwrap
+  the tuple before enumerating:
+  ```elixir
+  {:ok, stream} = Stub.stream_temperature(channel, %Empty{})
+  readings = Enum.take(stream, 3)
+  ```
+  Each item in the enumerable is itself `{:ok, %TemperatureReading{}}` or `{:error, error}`.
 
 ## Extending the Project
 
@@ -212,6 +237,22 @@ Follow this order within each module:
   the codebase convention is explicit message scheduling.
 - **PropertyTable keys are string lists**, not atoms or flat strings. Always use
   the form `["temperature"]`, not `:temperature` or `"temperature"`.
+- **Config files cannot reference structs at compile time** — structs aren't available
+  when config is evaluated. Store the module name (atom) in config and call `.new()` at
+  runtime in `init/1`.
+- **Protocol consolidation blocks inline `defimpl` in test files** — put shared test
+  implementations in `test/support/` (compiled before consolidation), add `test/support`
+  to `elixirc_paths(:test)` in `mix.exs`, and set `consolidate_protocols: Mix.env() != :test`.
+- **`vintage_net` crashes on host** trying to write `/etc/resolv.conf` — it is a
+  device-only library. Its dep entry must have `targets: @all_targets` in `mix.exs`.
+- **gRPC server tests: listener name conflict** — the application starts a Ranch listener
+  named after `ThermostatNerves.Endpoint` on port 50051. Binding a second endpoint with
+  the same name (even on port 0) fails with `:eaddrinuse` because the listener *name* is
+  taken, not just the port. Fix: call `GRPC.Server.stop_endpoint/1` to release the name,
+  then `GRPC.Server.start_endpoint/2` with port `0`, and restore in `on_exit`.
+- **Server-streaming RPCs return `{:ok, Enumerable.t()}`** — do NOT pipe the raw return
+  value of `Stub.stream_temperature/2` directly into `Enum`. Unwrap first:
+  `{:ok, stream} = Stub.stream_temperature(channel, req)` then `Enum.take(stream, n)`.
 
 ## Project-Specific Notes
 
@@ -227,6 +268,13 @@ Follow this order within each module:
   device. Common config in `config/config.exs`.
 - **Flutter app** lives in `flutter_app/`. It is built automatically during the
   Nerves release process. The compiled bundle goes to `priv/flutter_app/`.
+- **Flutter on host**: `flutter run -d linux` from `flutter_app/` connects to
+  `localhost:50051` unchanged. The `linux/` CMake scaffold is already present.
+- **`TemperatureSensor` GenServer injection**: accepts `{table_name, client_struct}`
+  as its init arg for tests (injecting a pre-built stub and isolated `PropertyTable`),
+  or `:from_config` for normal startup (reads config, calls `.new()`).
+- **`StubClient`** in `test/support/stub_client.ex` is Agent-backed and supports
+  `set_temperature/2` and `set_error/2` for controlling test behaviour.
 
 ### Dependencies & Tooling
 
@@ -235,3 +283,5 @@ Follow this order within each module:
 - **direnv** loads `.envrc` for environment variables.
 - Elixir deps managed via `mix.exs` and `mix.lock`. Run `mix deps.get` after
   changes.
+- **`flutter_app/test/widget_test.dart`** has a pre-existing `MyApp` not found
+  error — unrelated to this project's work, can be ignored.
