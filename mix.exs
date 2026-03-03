@@ -10,16 +10,21 @@ defmodule ThermostatNerves.MixProject do
       app: @app,
       version: @version,
       elixir: "~> 1.18",
+      elixirc_paths: elixirc_paths(Mix.env()),
       archives: [nerves_bootstrap: "~> 1.13"],
       start_permanent: Mix.env() == :prod,
       deps: deps(),
-      releases: [{@app, release()}]
+      releases: [{@app, release()}],
+      dialyzer: [plt_file: {:no_warn, "priv/plts/project.plt"}]
     ]
   end
 
   def cli do
     [preferred_targets: [run: :host, test: :host]]
   end
+
+  defp elixirc_paths(:test), do: ["lib", "test/support"]
+  defp elixirc_paths(_), do: ["lib"]
 
   # Run "mix help compile.app" to learn about applications.
   def application do
@@ -51,8 +56,8 @@ defmodule ThermostatNerves.MixProject do
       # version updates, please review their release notes in case
       # changes to your application are needed.
       {:nerves_system_rpi5, "~> 2.0", runtime: false, targets: :rpi5},
-      {:vintage_net, "~> 0.13"},
-      {:vintage_net_wifi, "~> 0.12"},
+      {:vintage_net, "~> 0.13", targets: @all_targets},
+      {:vintage_net_wifi, "~> 0.12", targets: @all_targets},
       {:ds18b20_1w, "~> 0.1"},
       {:nerves_flutter_support, "~> 1.3"},
       {:grpc, "~> 0.11"},

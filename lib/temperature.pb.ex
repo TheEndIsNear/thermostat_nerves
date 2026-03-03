@@ -13,7 +13,6 @@ end
 
 defmodule ThermostatNerves.RPC.Service do
   @moduledoc false
-
   use GRPC.Service, name: "ThermostatNerves.RPC", protoc_gen_elixir_version: "0.16.0"
 
   rpc(:sendTemperature, ThermostatNerves.Empty, ThermostatNerves.TemperatureReading, %{
@@ -40,6 +39,5 @@ end
 
 defmodule ThermostatNerves.RPC.Stub do
   @moduledoc false
-
   use GRPC.Stub, service: ThermostatNerves.RPC.Service
 end

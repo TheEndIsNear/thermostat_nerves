@@ -21,18 +21,29 @@ lib/
     application.ex                  # OTP Application & supervision tree
     endpoint.ex                     # gRPC endpoint (routes to Server)
     sensors/
+      temperature_client.ex         # Behaviour: @callback list/0 and @callback read/1
+      ds18b20_impl.ex               # Real hardware impl (target only)
+      mock_impl.ex                  # Host/dev/test impl (sinusoidal ~18–26°C)
       temperature_sensor.ex         # DS18B20 GenServer (reads sensor, writes PropertyTable)
     temperature/
       server.ex                     # gRPC service implementation (reads PropertyTable)
   temperature.pb.ex                 # GENERATED -- protobuf structs & service definition
 config/
   config.exs                        # Common config (loads host.exs or target.exs)
-  host.exs                          # Dev/test overrides
-  target.exs                        # Device networking, SSH, mDNS, WiFi
+  host.exs                          # Dev/test overrides (sets :temperature_client to MockImpl)
+  target.exs                        # Device networking, SSH, mDNS, WiFi (sets :temperature_client to Ds18b20Impl)
 priv/protos/
   temperature.proto                 # Protobuf service definition (source of truth)
 flutter_app/                        # Flutter UI (thermostat_ui), built during release
-test/                               # ExUnit tests, mirrors lib/ structure
+test/
+  support/
+    stub_client.ex                  # StubClient module implementing TemperatureClient behaviour for tests
+  thermostat_nerves/
+    sensors/
+      mock_impl_test.exs
+      temperature_sensor_test.exs
+    temperature/
+      server_test.exs
 ```
 
 ## Supervision Tree
@@ -87,6 +98,27 @@ Run before submitting changes:
 ```bash
 mix format --check-formatted && mix credo --strict && mix test && mix compile --warnings-as-errors
 ```
+
+### CI (GitHub Actions)
+
+CI runs automatically on every push and pull request via `.github/workflows/ci.yml`.
+It uses `MIX_TARGET=host` — firmware builds are not run in CI.
+
+Two jobs run in parallel:
+
+- **`check`** — format, credo --strict, compile --warnings-as-errors, mix test.
+  Fast (~1 min with warm cache). This is the blocking gate for PRs.
+- **`dialyzer`** — runs independently so it never delays the `check` job.
+  First run is slow (~5–10 min) while the PLT is built; subsequent runs use
+  the cache and are fast.
+
+PLTs are stored in `priv/plts/` (gitignored) and configured in `mix.exs`:
+
+```elixir
+dialyzer: [plt_file: {:no_warn, "priv/plts/project.plt"}]
+```
+
+The cache key is based on `mix.lock`, so a dep change triggers a PLT rebuild.
 
 ### Firmware (target device)
 
@@ -179,16 +211,57 @@ Follow this order within each module:
 - Use `use ExUnit.Case` in test modules.
 - Use `doctest ModuleName` to run doctests.
 - Tests are named descriptively: `test "description" do ... end`.
+- Add `test/support` to `elixirc_paths(:test)` in `mix.exs` for shared test helpers.
+- Start `GRPC.Client.Supervisor` in `test/test_helper.exs` for tests that open gRPC client channels.
+
+### gRPC Client Return Types
+
+- **Unary RPCs** (`Stub.send_temperature/2`) return `{:ok, %TemperatureReading{}}` — pattern match directly.
+- **Server-streaming RPCs** (`Stub.stream_temperature/2`) return `{:ok, Enumerable.t()}` — you must unwrap
+  the tuple before enumerating:
+  ```elixir
+  {:ok, stream} = Stub.stream_temperature(channel, %Empty{})
+  readings = Enum.take(stream, 3)
+  ```
+  Each item in the enumerable is itself `{:ok, %TemperatureReading{}}` or `{:error, error}`.
 
 ## Extending the Project
 
 ### Adding a New Sensor
 
-1. Create `lib/thermostat_nerves/sensors/my_sensor.ex` as a GenServer.
-2. Use `{:continue, :read_sensor}` in `init/1` for initial read.
-3. Store readings with `PropertyTable.put(SensorTable, ["my_key"], value)`.
-4. Schedule periodic reads with `Process.send_after(self(), :read_sensor, interval)`.
-5. Add the module to `children` in `application.ex`.
+The project uses the **behaviour + adapter pattern** for every sensor type:
+
+- A `@behaviour` module defines the contract (e.g., `TemperatureClient` with `list/0` and `read/1`).
+- A real implementation (`Ds18b20Impl`) uses `@behaviour` and `@impl` — target hardware only.
+- A mock implementation (`MockImpl`) uses `@behaviour` and `@impl` — host/dev, returns
+  synthetic data (e.g., sinusoidal values).
+- A stub in `test/support/` uses `@behaviour` and `@impl`, backed by an `Agent`, with
+  helpers (`set_temperature/2`, `set_error/2`) for controlling test outcomes.
+
+Config selects the real vs mock module at the environment level (host vs target). Tests inject
+the stub by passing `{table_name, StubClient}` directly to the GenServer init arg.
+
+**Use behaviour, not protocol.** Behaviour is right when swapping one implementation at
+config/compile time. Protocol is only warranted when dispatching over a heterogeneous
+*collection* of different value types at runtime — that never occurs here.
+
+To add a new sensor type:
+
+1. Create `lib/thermostat_nerves/sensors/my_client.ex` as a `@behaviour` with `@callback` declarations.
+2. Create `lib/thermostat_nerves/sensors/my_real_impl.ex` — real hardware implementation,
+   `@behaviour MyClient`, `@impl true` on each callback.
+3. Create `lib/thermostat_nerves/sensors/my_mock_impl.ex` — synthetic host implementation,
+   `@behaviour MyClient`, `@impl true` on each callback.
+4. Create `test/support/my_stub_client.ex` — Agent-backed test stub, `@behaviour MyClient`,
+   with `start/2`, `set_value/2`, `set_error/2` helpers. Key the Agent by test PID;
+   walk `$ancestors` in the callback to find the owning test process.
+5. Create `lib/thermostat_nerves/sensors/my_sensor.ex` as a GenServer.
+   - Use `{:continue, :read_sensor}` in `init/1` for initial read.
+   - Store readings with `PropertyTable.put(SensorTable, ["my_key"], value)`.
+   - Schedule periodic reads with `Process.send_after(self(), :read_sensor, interval)`.
+   - Accept `{table_name, client_module}` as the init arg for test injection.
+6. Wire config: `host.exs` → `MyMockImpl`, `target.exs` → `MyRealImpl`.
+7. Add the GenServer to `children` in `application.ex`.
 
 ### Adding a New gRPC Service
 
@@ -212,6 +285,23 @@ Follow this order within each module:
   the codebase convention is explicit message scheduling.
 - **PropertyTable keys are string lists**, not atoms or flat strings. Always use
   the form `["temperature"]`, not `:temperature` or `"temperature"`.
+- **Config files cannot reference structs at compile time** — structs aren't available
+  when config is evaluated. Store the module name (atom) in config and resolve it at
+  runtime in `init/1` via `Application.fetch_env!/2`.
+- **`$ancestors` PID-keying for test stubs** — `start_supervised!` nests GenServers
+  under ExUnit supervisors, so the test PID is not the direct `$callers` parent. Walk
+  the full `$ancestors` list and find the first PID with a registered stub agent.
+  See `test/support/stub_client.ex` for the pattern.
+- **`vintage_net` crashes on host** trying to write `/etc/resolv.conf` — it is a
+  device-only library. Its dep entry must have `targets: @all_targets` in `mix.exs`.
+- **gRPC server tests: listener name conflict** — the application starts a Ranch listener
+  named after `ThermostatNerves.Endpoint` on port 50051. Binding a second endpoint with
+  the same name (even on port 0) fails with `:eaddrinuse` because the listener *name* is
+  taken, not just the port. Fix: call `GRPC.Server.stop_endpoint/1` to release the name,
+  then `GRPC.Server.start_endpoint/2` with port `0`, and restore in `on_exit`.
+- **Server-streaming RPCs return `{:ok, Enumerable.t()}`** — do NOT pipe the raw return
+  value of `Stub.stream_temperature/2` directly into `Enum`. Unwrap first:
+  `{:ok, stream} = Stub.stream_temperature(channel, req)` then `Enum.take(stream, n)`.
 
 ## Project-Specific Notes
 
@@ -227,6 +317,13 @@ Follow this order within each module:
   device. Common config in `config/config.exs`.
 - **Flutter app** lives in `flutter_app/`. It is built automatically during the
   Nerves release process. The compiled bundle goes to `priv/flutter_app/`.
+- **Flutter on host**: `flutter run -d linux` from `flutter_app/` connects to
+  `localhost:50051` unchanged. The `linux/` CMake scaffold is already present.
+- **`TemperatureSensor` GenServer injection**: accepts `{table_name, client_module}`
+  as its init arg for tests (injecting a stub module atom and isolated `PropertyTable`),
+  or `:from_config` for normal startup (reads config via `Application.fetch_env!/2`).
+- **`StubClient`** in `test/support/stub_client.ex` is Agent-backed and supports
+  `set_temperature/2` and `set_error/2` for controlling test behaviour.
 
 ### Dependencies & Tooling
 
@@ -235,3 +332,5 @@ Follow this order within each module:
 - **direnv** loads `.envrc` for environment variables.
 - Elixir deps managed via `mix.exs` and `mix.lock`. Run `mix deps.get` after
   changes.
+- **`flutter_app/test/widget_test.dart`** has a pre-existing `MyApp` not found
+  error — unrelated to this project's work, can be ignored.

@@ -1,5 +1,7 @@
 import Config
 
+config :thermostat_nerves, :temperature_client, ThermostatNerves.Sensors.Ds18b20Impl
+
 # Use Ringlogger as the logger backend and remove :console.
 # See https://hexdocs.pm/ring_logger/readme.html for more information on
 # configuring ring_logger.
@@ -64,8 +66,9 @@ config :vintage_net,
          networks: [
            %{key_mgmt: :wpa_psk, ssid: ssid, psk: psk}
          ]
-       }
-     }, ipv4: %{method: :dhcp}}
+       },
+       ipv4: %{method: :dhcp}
+     }}
   ]
 
 config :mdns_lite,

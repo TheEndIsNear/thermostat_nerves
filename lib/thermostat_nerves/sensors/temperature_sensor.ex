@@ -1,59 +1,91 @@
 defmodule ThermostatNerves.Sensors.TemperatureSensor do
   @moduledoc """
-    GenServer for handling the reading of a DS18b20 1 wire temperature sensor. Stores the value of
-    the temperature PropertyTable
+  GenServer that periodically reads temperature and stores it in a PropertyTable.
+
+  The hardware details are abstracted behind the `TemperatureClient` behaviour.
+  The concrete implementation is injected at startup via the application
+  environment key `:temperature_client`, allowing the real DS18B20 driver to
+  be used on target and a mock to be used on host without changing this module.
+
+  ## Configuration
+
+      # host.exs
+      config :thermostat_nerves, :temperature_client,
+        ThermostatNerves.Sensors.MockImpl
+
+      # target.exs
+      config :thermostat_nerves, :temperature_client,
+        ThermostatNerves.Sensors.Ds18b20Impl
+
+  ## Test injection
+
+  For unit tests, pass `{table_name, client_module}` as the init arg to
+  `start_link/1` to bypass config and use a stub module against an
+  isolated PropertyTable:
+
+      start_supervised({TemperatureSensor, {my_table, MyStubClient}})
   """
+
   use GenServer
 
   require Logger
 
+  @read_interval_ms 100
+
+  @doc """
+  Starts the sensor GenServer.
+
+  When called from the supervision tree (no args), the client module is
+  resolved from application config and readings are written to `SensorTable`.
+
+  For testing, pass `{table_name, client_module}` to inject a specific
+  PropertyTable and client module directly.
+  """
+  def start_link(opts \\ [])
+
+  def start_link({table, client}) do
+    GenServer.start_link(__MODULE__, {table, client})
+  end
+
   def start_link(_) do
-    GenServer.start_link(__MODULE__, name: __MODULE__)
+    GenServer.start_link(__MODULE__, :from_config, name: __MODULE__)
   end
 
   @impl GenServer
-  def init(_) do
-    {:ok, %{sensor_path: "", temperature: nil}, {:continue, :read_sensor}}
+  def init(:from_config) do
+    client = Application.fetch_env!(:thermostat_nerves, :temperature_client)
+    {:ok, %{table: SensorTable, client: client, sensor: nil}, {:continue, :init_sensor}}
+  end
+
+  def init({table, client}) do
+    {:ok, %{table: table, client: client, sensor: nil}, {:continue, :init_sensor}}
   end
 
   @impl GenServer
-  def handle_continue(:read_sensor, state) do
-    sensor_path = list_sensor()
-    Logger.info(sensor_path)
-    read_sensor(sensor_path)
-
+  def handle_continue(:init_sensor, %{client: client} = state) do
+    {:ok, sensor} = client.list()
+    Logger.info("Temperature sensor found: #{inspect(sensor)}")
+    read_and_store(state.table, client, sensor)
     schedule_next_read()
-    {:noreply, %{state | sensor_path: sensor_path}}
+    {:noreply, %{state | sensor: sensor}}
   end
 
   @impl GenServer
-  def handle_info(:read_sensor, %{sensor_path: sensor_path} = state) do
-    read_sensor(sensor_path)
-
+  def handle_info(:read_sensor, %{table: table, client: client, sensor: sensor} = state) do
+    read_and_store(table, client, sensor)
     schedule_next_read()
     {:noreply, state}
   end
 
-  defp list_sensor do
-    case Ds18b20_1w.list_sensors() do
-      [sensor_path] ->
-        sensor_path
+  defp read_and_store(table, client, sensor) do
+    case client.read(sensor) do
+      {:ok, temp} ->
+        PropertyTable.put(table, ["temperature"], temp)
 
-      _ ->
-        :timer.sleep(100)
-        list_sensor()
+      {:error, reason} ->
+        Logger.error("Failed to read temperature: #{reason}")
     end
   end
 
-  defp read_sensor(sensor_path) do
-    case Ds18b20_1w.read_temperature_file(sensor_path) do
-      {:ok, _, temp} ->
-        PropertyTable.put(SensorTable, ["temperature"], temp)
-
-      {:error, sensor, error} ->
-        Logger.error("Error reading sensor #{sensor} #{error}")
-    end
-  end
-
-  defp schedule_next_read, do: Process.send_after(self(), :read_sensor, 100)
+  defp schedule_next_read, do: Process.send_after(self(), :read_sensor, @read_interval_ms)
 end
