@@ -55,5 +55,5 @@ defmodule ThermostatNerves.Sensors.TemperatureSensor do
     end
   end
 
-  defp schedule_next_read, do: Process.send_after(self(), :read_sensor, :timer.seconds(5))
+  defp schedule_next_read, do: Process.send_after(self(), :read_sensor, 100)
 end
