@@ -2,7 +2,7 @@ defmodule ThermostatNerves.Sensors.TemperatureSensor do
   @moduledoc """
   GenServer that periodically reads temperature and stores it in a PropertyTable.
 
-  The hardware details are abstracted behind the `TemperatureClient` protocol.
+  The hardware details are abstracted behind the `TemperatureClient` behaviour.
   The concrete implementation is injected at startup via the application
   environment key `:temperature_client`, allowing the real DS18B20 driver to
   be used on target and a mock to be used on host without changing this module.
@@ -19,29 +19,27 @@ defmodule ThermostatNerves.Sensors.TemperatureSensor do
 
   ## Test injection
 
-  For unit tests, pass `{table_name, client_struct}` as the init arg to
-  `start_link/1` to bypass config and use a pre-built client against an
+  For unit tests, pass `{table_name, client_module}` as the init arg to
+  `start_link/1` to bypass config and use a stub module against an
   isolated PropertyTable:
 
-      start_supervised({TemperatureSensor, {my_table, %MyStubClient{}}})
+      start_supervised({TemperatureSensor, {my_table, MyStubClient}})
   """
 
   use GenServer
 
   require Logger
 
-  alias ThermostatNerves.Sensors.TemperatureClient
-
   @read_interval_ms 100
 
   @doc """
   Starts the sensor GenServer.
 
-  When called from the supervision tree (no args), the client is resolved
-  from application config and readings are written to `SensorTable`.
+  When called from the supervision tree (no args), the client module is
+  resolved from application config and readings are written to `SensorTable`.
 
-  For testing, pass `{table_name, client_struct}` to inject a specific
-  PropertyTable and pre-built client directly.
+  For testing, pass `{table_name, client_module}` to inject a specific
+  PropertyTable and client module directly.
   """
   def start_link(opts \\ [])
 
@@ -55,11 +53,7 @@ defmodule ThermostatNerves.Sensors.TemperatureSensor do
 
   @impl GenServer
   def init(:from_config) do
-    client =
-      :thermostat_nerves
-      |> Application.fetch_env!(:temperature_client)
-      |> then(& &1.new())
-
+    client = Application.fetch_env!(:thermostat_nerves, :temperature_client)
     {:ok, %{table: SensorTable, client: client, sensor: nil}, {:continue, :init_sensor}}
   end
 
@@ -69,7 +63,7 @@ defmodule ThermostatNerves.Sensors.TemperatureSensor do
 
   @impl GenServer
   def handle_continue(:init_sensor, %{client: client} = state) do
-    {:ok, sensor} = TemperatureClient.list(client)
+    {:ok, sensor} = client.list()
     Logger.info("Temperature sensor found: #{inspect(sensor)}")
     read_and_store(state.table, client, sensor)
     schedule_next_read()
@@ -84,7 +78,7 @@ defmodule ThermostatNerves.Sensors.TemperatureSensor do
   end
 
   defp read_and_store(table, client, sensor) do
-    case TemperatureClient.read(client, sensor) do
+    case client.read(sensor) do
       {:ok, temp} ->
         PropertyTable.put(table, ["temperature"], temp)
 

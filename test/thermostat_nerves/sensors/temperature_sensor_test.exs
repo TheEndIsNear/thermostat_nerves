@@ -8,10 +8,11 @@ defmodule ThermostatNerves.Sensors.TemperatureSensorTest do
   # Helpers
   # ---------------------------------------------------------------------------
 
-  defp start_sensor(stub) do
+  defp start_sensor(initial_temp) do
+    StubClient.start(self(), initial_temp)
     table = :"SensorTable_#{System.unique_integer([:positive])}"
     start_supervised!({PropertyTable, name: table})
-    start_supervised!({TemperatureSensor, {table, stub}})
+    start_supervised!({TemperatureSensor, {table, StubClient}})
     # Allow handle_continue to complete before asserting.
     Process.sleep(50)
     table
@@ -23,21 +24,17 @@ defmodule ThermostatNerves.Sensors.TemperatureSensorTest do
 
   describe "initialisation" do
     test "reads the initial temperature into the PropertyTable on start" do
-      stub = StubClient.new(23.0)
-      table = start_sensor(stub)
-
+      table = start_sensor(23.0)
       assert PropertyTable.get(table, ["temperature"]) == 23.0
     end
   end
 
   describe "periodic reads" do
     test "updates the PropertyTable when the temperature changes" do
-      stub = StubClient.new(20.0)
-      table = start_sensor(stub)
-
+      table = start_sensor(20.0)
       assert PropertyTable.get(table, ["temperature"]) == 20.0
 
-      StubClient.set_temperature(stub, 25.5)
+      StubClient.set_temperature(self(), 25.5)
       # Wait long enough for at least one @read_interval_ms (100 ms) tick.
       Process.sleep(200)
 
@@ -45,12 +42,10 @@ defmodule ThermostatNerves.Sensors.TemperatureSensorTest do
     end
 
     test "does not update the PropertyTable on a read error" do
-      stub = StubClient.new(18.0)
-      table = start_sensor(stub)
-
+      table = start_sensor(18.0)
       assert PropertyTable.get(table, ["temperature"]) == 18.0
 
-      StubClient.set_error(stub, "sensor disconnected")
+      StubClient.set_error(self(), "sensor disconnected")
       Process.sleep(200)
 
       # Value must remain at the last successful reading.

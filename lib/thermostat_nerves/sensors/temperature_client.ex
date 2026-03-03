@@ -1,6 +1,6 @@
-defprotocol ThermostatNerves.Sensors.TemperatureClient do
+defmodule ThermostatNerves.Sensors.TemperatureClient do
   @moduledoc """
-  Protocol for reading temperature from a sensor source.
+  Behaviour for reading temperature from a sensor source.
 
   Implementations provide the hardware-specific (or mock) details while the
   `TemperatureSensor` GenServer remains agnostic of the underlying source.
@@ -17,14 +17,12 @@ defprotocol ThermostatNerves.Sensors.TemperatureClient do
   Blocks/retries until a sensor is available. Returns `{:ok, sensor}` on
   success or `{:error, reason}` if the sensor cannot be found.
   """
-  @spec list(t()) :: {:ok, term()} | {:error, term()}
-  def list(client)
+  @callback list() :: {:ok, term()} | {:error, term()}
 
   @doc """
   Reads the current temperature from the given `sensor`.
 
   Returns `{:ok, float()}` on success or `{:error, reason}` on failure.
   """
-  @spec read(t(), term()) :: {:ok, float()} | {:error, term()}
-  def read(client, sensor)
+  @callback read(sensor :: term()) :: {:ok, float()} | {:error, term()}
 end

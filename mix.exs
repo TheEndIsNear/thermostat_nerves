@@ -13,7 +13,6 @@ defmodule ThermostatNerves.MixProject do
       elixirc_paths: elixirc_paths(Mix.env()),
       archives: [nerves_bootstrap: "~> 1.13"],
       start_permanent: Mix.env() == :prod,
-      consolidate_protocols: Mix.env() != :test,
       deps: deps(),
       releases: [{@app, release()}]
     ]

@@ -21,7 +21,7 @@ lib/
     application.ex                  # OTP Application & supervision tree
     endpoint.ex                     # gRPC endpoint (routes to Server)
     sensors/
-      temperature_client.ex         # Protocol: list/1 and read/2
+      temperature_client.ex         # Behaviour: @callback list/0 and @callback read/1
       ds18b20_impl.ex               # Real hardware impl (target only)
       mock_impl.ex                  # Host/dev/test impl (sinusoidal ~18–26°C)
       temperature_sensor.ex         # DS18B20 GenServer (reads sensor, writes PropertyTable)
@@ -37,7 +37,7 @@ priv/protos/
 flutter_app/                        # Flutter UI (thermostat_ui), built during release
 test/
   support/
-    stub_client.ex                  # StubClient struct + TemperatureClient defimpl for tests
+    stub_client.ex                  # StubClient module implementing TemperatureClient behaviour for tests
   thermostat_nerves/
     sensors/
       mock_impl_test.exs
@@ -191,7 +191,6 @@ Follow this order within each module:
 - Use `doctest ModuleName` to run doctests.
 - Tests are named descriptively: `test "description" do ... end`.
 - Add `test/support` to `elixirc_paths(:test)` in `mix.exs` for shared test helpers.
-- Set `consolidate_protocols: Mix.env() != :test` in `mix.exs` to allow `defimpl` in test support files.
 - Start `GRPC.Client.Supervisor` in `test/test_helper.exs` for tests that open gRPC client channels.
 
 ### gRPC Client Return Types
@@ -209,11 +208,39 @@ Follow this order within each module:
 
 ### Adding a New Sensor
 
-1. Create `lib/thermostat_nerves/sensors/my_sensor.ex` as a GenServer.
-2. Use `{:continue, :read_sensor}` in `init/1` for initial read.
-3. Store readings with `PropertyTable.put(SensorTable, ["my_key"], value)`.
-4. Schedule periodic reads with `Process.send_after(self(), :read_sensor, interval)`.
-5. Add the module to `children` in `application.ex`.
+The project uses the **behaviour + adapter pattern** for every sensor type:
+
+- A `@behaviour` module defines the contract (e.g., `TemperatureClient` with `list/0` and `read/1`).
+- A real implementation (`Ds18b20Impl`) uses `@behaviour` and `@impl` — target hardware only.
+- A mock implementation (`MockImpl`) uses `@behaviour` and `@impl` — host/dev, returns
+  synthetic data (e.g., sinusoidal values).
+- A stub in `test/support/` uses `@behaviour` and `@impl`, backed by an `Agent`, with
+  helpers (`set_temperature/2`, `set_error/2`) for controlling test outcomes.
+
+Config selects the real vs mock module at the environment level (host vs target). Tests inject
+the stub by passing `{table_name, StubClient}` directly to the GenServer init arg.
+
+**Use behaviour, not protocol.** Behaviour is right when swapping one implementation at
+config/compile time. Protocol is only warranted when dispatching over a heterogeneous
+*collection* of different value types at runtime — that never occurs here.
+
+To add a new sensor type:
+
+1. Create `lib/thermostat_nerves/sensors/my_client.ex` as a `@behaviour` with `@callback` declarations.
+2. Create `lib/thermostat_nerves/sensors/my_real_impl.ex` — real hardware implementation,
+   `@behaviour MyClient`, `@impl true` on each callback.
+3. Create `lib/thermostat_nerves/sensors/my_mock_impl.ex` — synthetic host implementation,
+   `@behaviour MyClient`, `@impl true` on each callback.
+4. Create `test/support/my_stub_client.ex` — Agent-backed test stub, `@behaviour MyClient`,
+   with `start/2`, `set_value/2`, `set_error/2` helpers. Key the Agent by test PID;
+   walk `$ancestors` in the callback to find the owning test process.
+5. Create `lib/thermostat_nerves/sensors/my_sensor.ex` as a GenServer.
+   - Use `{:continue, :read_sensor}` in `init/1` for initial read.
+   - Store readings with `PropertyTable.put(SensorTable, ["my_key"], value)`.
+   - Schedule periodic reads with `Process.send_after(self(), :read_sensor, interval)`.
+   - Accept `{table_name, client_module}` as the init arg for test injection.
+6. Wire config: `host.exs` → `MyMockImpl`, `target.exs` → `MyRealImpl`.
+7. Add the GenServer to `children` in `application.ex`.
 
 ### Adding a New gRPC Service
 
@@ -238,11 +265,12 @@ Follow this order within each module:
 - **PropertyTable keys are string lists**, not atoms or flat strings. Always use
   the form `["temperature"]`, not `:temperature` or `"temperature"`.
 - **Config files cannot reference structs at compile time** — structs aren't available
-  when config is evaluated. Store the module name (atom) in config and call `.new()` at
-  runtime in `init/1`.
-- **Protocol consolidation blocks inline `defimpl` in test files** — put shared test
-  implementations in `test/support/` (compiled before consolidation), add `test/support`
-  to `elixirc_paths(:test)` in `mix.exs`, and set `consolidate_protocols: Mix.env() != :test`.
+  when config is evaluated. Store the module name (atom) in config and resolve it at
+  runtime in `init/1` via `Application.fetch_env!/2`.
+- **`$ancestors` PID-keying for test stubs** — `start_supervised!` nests GenServers
+  under ExUnit supervisors, so the test PID is not the direct `$callers` parent. Walk
+  the full `$ancestors` list and find the first PID with a registered stub agent.
+  See `test/support/stub_client.ex` for the pattern.
 - **`vintage_net` crashes on host** trying to write `/etc/resolv.conf` — it is a
   device-only library. Its dep entry must have `targets: @all_targets` in `mix.exs`.
 - **gRPC server tests: listener name conflict** — the application starts a Ranch listener
@@ -270,9 +298,9 @@ Follow this order within each module:
   Nerves release process. The compiled bundle goes to `priv/flutter_app/`.
 - **Flutter on host**: `flutter run -d linux` from `flutter_app/` connects to
   `localhost:50051` unchanged. The `linux/` CMake scaffold is already present.
-- **`TemperatureSensor` GenServer injection**: accepts `{table_name, client_struct}`
-  as its init arg for tests (injecting a pre-built stub and isolated `PropertyTable`),
-  or `:from_config` for normal startup (reads config, calls `.new()`).
+- **`TemperatureSensor` GenServer injection**: accepts `{table_name, client_module}`
+  as its init arg for tests (injecting a stub module atom and isolated `PropertyTable`),
+  or `:from_config` for normal startup (reads config via `Application.fetch_env!/2`).
 - **`StubClient`** in `test/support/stub_client.ex` is Agent-backed and supports
   `set_temperature/2` and `set_error/2` for controlling test behaviour.
 
