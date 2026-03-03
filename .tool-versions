@@ -1,2 +1,5 @@
 protoc 31.1
 flutter 3.32.8-stable
+elixir  1.19.2-otp-28
+erlang 28.1.1
+
