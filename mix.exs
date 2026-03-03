@@ -34,16 +34,16 @@ defmodule ThermostatNerves.MixProject do
     [
       # Dependencies for all targets
       {:nerves, "~> 1.13", runtime: false},
-      {:shoehorn, "~> 0.9.1"},
-      {:ring_logger, "~> 0.11.0"},
-      {:toolshed, "~> 0.4.0"},
+      {:shoehorn, "~> 0.9"},
+      {:ring_logger, "~> 0.11"},
+      {:toolshed, "~> 0.4"},
 
       # Allow Nerves.Runtime on host to support development, testing and CI.
       # See config/host.exs for usage.
-      {:nerves_runtime, "~> 0.13.0"},
+      {:nerves_runtime, "~> 0.13"},
 
       # Dependencies for all targets except :host
-      {:nerves_pack, "~> 0.7.1", targets: @all_targets},
+      {:nerves_pack, "~> 0.7", targets: @all_targets},
 
       # Dependencies for specific targets
       # NOTE: It's generally low risk and recommended to follow minor version
@@ -53,11 +53,11 @@ defmodule ThermostatNerves.MixProject do
       {:nerves_system_rpi5, "~> 0.8", runtime: false, targets: :rpi5},
       {:vintage_net, "~> 0.13"},
       {:vintage_net_wifi, "~> 0.12"},
-      {:ds18b20_1w, "~> 0.1.2"},
-      {:nerves_flutter_support, "~> 1.3.0"},
+      {:ds18b20_1w, "~> 0.1"},
+      {:nerves_flutter_support, "~> 1.3"},
       {:grpc, "~> 0.11"},
       {:protobuf, "~> 0.15"},
-      {:protobuf_generate, "~> 0.1.1"},
+      {:protobuf_generate, "~> 0.1"},
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false}
     ]
