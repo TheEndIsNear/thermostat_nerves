@@ -25,7 +25,13 @@ defmodule ThermostatNerves.Application do
     # See https://hexdocs.pm/elixir/Supervisor.html
     # for other strategies and supported options
     opts = [strategy: :one_for_one, name: ThermostatNerves.Supervisor]
-    Supervisor.start_link(children, opts)
+
+    with {:ok, pid} <- Supervisor.start_link(children, opts) do
+      # Mark firmware as valid so the automatic rollback mechanism in
+      # nerves_system_rpi5 v2+ does not revert to the previous version.
+      Nerves.Runtime.validate_firmware()
+      {:ok, pid}
+    end
   end
 
   # List all child processes to be supervised

@@ -50,7 +50,7 @@ defmodule ThermostatNerves.MixProject do
       # bumps to Nerves systems. Since these include Linux kernel and Erlang
       # version updates, please review their release notes in case
       # changes to your application are needed.
-      {:nerves_system_rpi5, "~> 0.8", runtime: false, targets: :rpi5},
+      {:nerves_system_rpi5, "~> 2.0", runtime: false, targets: :rpi5},
       {:vintage_net, "~> 0.13"},
       {:vintage_net_wifi, "~> 0.12"},
       {:ds18b20_1w, "~> 0.1"},
