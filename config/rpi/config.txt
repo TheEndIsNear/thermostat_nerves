@@ -1,12 +1,13 @@
 # Nerves RPi 5 config.txt
 #
-# It's possible to override this file by using a custom fwup.conf
-# configuration to pull in a replacement.
+# Based on upstream nerves_system_rpi5 v2.0.0 config.txt
+# Changes from upstream:
+#   - dtoverlay=vc4-kms-v3d-pi5 (required for Flutter DRM/KMS display)
+#   - dtoverlay=w1-gpio-pi5,gpiopin=4 enabled (DS18B20 1-Wire sensor on GPIO4)
 #
 # Useful links:
 # http://rptl.io/configtxt
 # https://www.raspberrypi.org/documentation/configuration/device-tree.md
-# https://github.com/raspberrypi/documentation/blob/master/configuration/device-tree.md
 # https://github.com/raspberrypi/firmware/blob/master/boot/overlays/README
 
 # We always use the same names. The variant is selected in fwup.conf.
@@ -34,8 +35,7 @@ camera_auto_detect=1
 # Automatically load overlays for detected DSI displays
 display_auto_detect=1
 
-# Enable DRM VC4 V3D driver
-# NOTE: RPi5 uses vc4-kms-v3d-pi5 instead of vc4-kms-v3d
+# Enable DRM VC4 V3D driver (Pi5-specific variant required for Flutter KMS/DRM)
 dtoverlay=vc4-kms-v3d-pi5
 max_framebuffers=2
 
@@ -52,9 +52,7 @@ disable_overscan=1
 # Run as fast as firmware / board allows
 arm_boost=1
 
-# Comment this in or modify to enable OneWire
-# NOTE: check that the overlay that you specify is in the boot partition or
-#       this won't work.
+# Enable 1-Wire for DS18B20 temperature sensor on GPIO4
 dtoverlay=w1-gpio-pi5,gpiopin=4
 
 # Support USB gadget mode on the USB-C port
@@ -66,4 +64,3 @@ dtoverlay=ramoops
 
 # Enable the UART (/dev/ttyAMA0)
 enable_uart=1
-
