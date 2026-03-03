@@ -46,6 +46,9 @@ jobs:
           key: build-${{ runner.os }}-${{ matrix.otp }}-${{ matrix.elixir }}-${{ hashFiles('mix.lock') }}
           restore-keys: build-${{ runner.os }}-${{ matrix.otp }}-${{ matrix.elixir }}-
 
+      - name: Install nerves_bootstrap archive
+        run: mix archive.install hex nerves_bootstrap "~> 1.13" --force
+
       - name: Install dependencies
         run: mix deps.get
 
@@ -102,6 +105,9 @@ jobs:
           path: priv/plts
           key: plts-${{ runner.os }}-${{ matrix.otp }}-${{ matrix.elixir }}-${{ hashFiles('mix.lock') }}
           restore-keys: plts-${{ runner.os }}-${{ matrix.otp }}-${{ matrix.elixir }}-
+
+      - name: Install nerves_bootstrap archive
+        run: mix archive.install hex nerves_bootstrap "~> 1.13" --force
 
       - name: Install dependencies
         run: mix deps.get
