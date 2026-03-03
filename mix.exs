@@ -14,7 +14,8 @@ defmodule ThermostatNerves.MixProject do
       archives: [nerves_bootstrap: "~> 1.13"],
       start_permanent: Mix.env() == :prod,
       deps: deps(),
-      releases: [{@app, release()}]
+      releases: [{@app, release()}],
+      dialyzer: [plt_file: {:no_warn, "priv/plts/project.plt"}]
     ]
   end
 
