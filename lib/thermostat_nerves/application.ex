@@ -19,7 +19,7 @@ defmodule ThermostatNerves.Application do
         {PropertyTable, name: SensorTable},
         ThermostatNerves.Sensors.TemperatureSensor,
         {GRPC.Server.Supervisor,
-         endpoint: ThermostatNerves.Endpoint, port: 50051, start_server: true}
+         endpoint: ThermostatNerves.Endpoint, port: 50_051, start_server: true}
       ] ++ target_children()
 
     # See https://hexdocs.pm/elixir/Supervisor.html
