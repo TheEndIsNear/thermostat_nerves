@@ -47,10 +47,19 @@ class _TemperaturePageState extends State<TemperaturePage> {
   late RPCClient _stub;
   StreamSubscription<TemperatureReading>? _subscription;
 
+  DateTime _currentTime = DateTime.now();
+  late Timer? _timer;
+
   @override
   void initState() {
     super.initState();
     _connect();
+
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      setState(() {
+        _currentTime = DateTime.now();
+      });
+    });
   }
 
   void _connect() {
@@ -71,6 +80,7 @@ class _TemperaturePageState extends State<TemperaturePage> {
     final stream = _stub.streamTemperature(Empty());
     _subscription = stream.listen(
       (reading) {
+        if (!mounted) return;
         setState(() {
           _temperature = reading.value;
           _unit = reading.unit;
@@ -79,6 +89,7 @@ class _TemperaturePageState extends State<TemperaturePage> {
         });
       },
       onError: (error) {
+        if (!mounted) return;
         setState(() {
           _connected = false;
           _error = 'Connection lost. Retrying...';
@@ -87,6 +98,7 @@ class _TemperaturePageState extends State<TemperaturePage> {
         Future.delayed(const Duration(seconds: 3), _startStream);
       },
       onDone: () {
+        if (!mounted) return;
         setState(() {
           _connected = false;
         });
@@ -99,12 +111,22 @@ class _TemperaturePageState extends State<TemperaturePage> {
   void dispose() {
     _subscription?.cancel();
     _channel.shutdown();
+
+    _timer?.cancel();
     super.dispose();
   }
 
   String _formatTemperature() {
     if (_temperature == null) return '--.-';
     return _temperature!.toStringAsFixed(1);
+  }
+
+  String _formatTime() {
+    String twoDigits(int n) => n.toString().padLeft(2, '0');
+
+    return "${twoDigits(_currentTime.hour)}:"
+        "${twoDigits(_currentTime.minute)}:"
+        "${twoDigits(_currentTime.second)}";
   }
 
   @override
@@ -136,6 +158,18 @@ class _TemperaturePageState extends State<TemperaturePage> {
                   ),
                 ),
               ],
+            ),
+
+            const SizedBox(height: 24),
+
+            // Current Time
+            Text(
+              _formatTime(),
+              style: const TextStyle(
+                color: Colors.white70,
+                fontSize: 48,
+                fontWeight: FontWeight.w300,
+              ),
             ),
 
             const SizedBox(height: 24),
