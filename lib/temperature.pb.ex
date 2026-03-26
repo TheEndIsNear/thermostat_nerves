@@ -3,6 +3,13 @@ defmodule ThermostatNerves.Empty do
   use Protobuf, protoc_gen_elixir_version: "0.16.0", syntax: :proto3
 end
 
+defmodule ThermostatNerves.UnitRequest do
+  @moduledoc false
+  use Protobuf, protoc_gen_elixir_version: "0.16.0", syntax: :proto3
+
+  field :unit, 1, type: :string
+end
+
 defmodule ThermostatNerves.TemperatureReading do
   @moduledoc false
   use Protobuf, protoc_gen_elixir_version: "0.16.0", syntax: :proto3
@@ -13,7 +20,6 @@ end
 
 defmodule ThermostatNerves.RPC.Service do
   @moduledoc false
-
   use GRPC.Service, name: "ThermostatNerves.RPC", protoc_gen_elixir_version: "0.16.0"
 
   rpc(:sendTemperature, ThermostatNerves.Empty, ThermostatNerves.TemperatureReading, %{
@@ -36,10 +42,23 @@ defmodule ThermostatNerves.RPC.Service do
     stream(ThermostatNerves.TemperatureReading),
     %{}
   )
+
+  rpc(:setUnit, ThermostatNerves.UnitRequest, ThermostatNerves.Empty, %{
+    http: %{
+      type: Google.Api.PbExtension,
+      value: %Google.Api.HttpRule{
+        selector: "",
+        body: "*",
+        additional_bindings: [],
+        response_body: "",
+        pattern: {:post, "/unit"},
+        __unknown_fields__: []
+      }
+    }
+  })
 end
 
 defmodule ThermostatNerves.RPC.Stub do
   @moduledoc false
-
   use GRPC.Stub, service: ThermostatNerves.RPC.Service
 end

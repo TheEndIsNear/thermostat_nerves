@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:grpc/grpc.dart';
 
+import 'generated/temperature.pb.dart';
 import 'generated/temperature.pbgrpc.dart';
 
 void main() {
@@ -129,6 +130,15 @@ class _TemperaturePageState extends State<TemperaturePage> {
         "${twoDigits(_currentTime.second)}";
   }
 
+  Future<void> _setUnit(String unit) async {
+    setState(() => _unit = unit);
+    try {
+      await _stub.setUnit(UnitRequest(unit: unit));
+    } catch (_) {
+      // The stream will self-correct on next push; no further action needed.
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -174,14 +184,33 @@ class _TemperaturePageState extends State<TemperaturePage> {
 
             const SizedBox(height: 24),
 
-            // Temperature reading
-            Text(
-              '${_formatTemperature()} °$_unit',
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 72,
-                fontWeight: FontWeight.w300,
-              ),
+            // Temperature reading — tap the unit to toggle C/F
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.baseline,
+              textBaseline: TextBaseline.alphabetic,
+              children: [
+                Text(
+                  '${_formatTemperature()} °',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 72,
+                    fontWeight: FontWeight.w300,
+                  ),
+                ),
+                GestureDetector(
+                  onTap: () => _setUnit(_unit == 'C' ? 'F' : 'C'),
+                  child: Text(
+                    _unit,
+                    style: const TextStyle(
+                      color: Colors.blueAccent,
+                      fontSize: 72,
+                      fontWeight: FontWeight.w300,
+                      decoration: TextDecoration.underline,
+                    ),
+                  ),
+                ),
+              ],
             ),
 
             const SizedBox(height: 16),

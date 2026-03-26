@@ -48,6 +48,13 @@ class RPCClient extends $grpc.Client {
         options: options);
   }
 
+  $grpc.ResponseFuture<$0.Empty> setUnit(
+    $0.UnitRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$setUnit, request, options: options);
+  }
+
   // method descriptors
 
   static final _$sendTemperature =
@@ -60,6 +67,10 @@ class RPCClient extends $grpc.Client {
           '/ThermostatNerves.RPC/streamTemperature',
           ($0.Empty value) => value.writeToBuffer(),
           $0.TemperatureReading.fromBuffer);
+  static final _$setUnit = $grpc.ClientMethod<$0.UnitRequest, $0.Empty>(
+      '/ThermostatNerves.RPC/setUnit',
+      ($0.UnitRequest value) => value.writeToBuffer(),
+      $0.Empty.fromBuffer);
 }
 
 @$pb.GrpcServiceName('ThermostatNerves.RPC')
@@ -81,6 +92,13 @@ abstract class RPCServiceBase extends $grpc.Service {
         true,
         ($core.List<$core.int> value) => $0.Empty.fromBuffer(value),
         ($0.TemperatureReading value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.UnitRequest, $0.Empty>(
+        'setUnit',
+        setUnit_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) => $0.UnitRequest.fromBuffer(value),
+        ($0.Empty value) => value.writeToBuffer()));
   }
 
   $async.Future<$0.TemperatureReading> sendTemperature_Pre(
@@ -98,4 +116,12 @@ abstract class RPCServiceBase extends $grpc.Service {
 
   $async.Stream<$0.TemperatureReading> streamTemperature(
       $grpc.ServiceCall call, $0.Empty request);
+
+  $async.Future<$0.Empty> setUnit_Pre(
+      $grpc.ServiceCall $call, $async.Future<$0.UnitRequest> $request) async {
+    return setUnit($call, await $request);
+  }
+
+  $async.Future<$0.Empty> setUnit(
+      $grpc.ServiceCall call, $0.UnitRequest request);
 }

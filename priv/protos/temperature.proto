@@ -6,6 +6,10 @@ package ThermostatNerves;
 
 message Empty {}
 
+message UnitRequest {
+	string unit = 1;  // "C" for Celsius, "F" for Fahrenheit
+}
+
 service RPC {
 	rpc sendTemperature(Empty) returns (TemperatureReading) {
 		option (google.api.http) = {
@@ -14,6 +18,13 @@ service RPC {
 	}
 
 	rpc streamTemperature(Empty) returns (stream TemperatureReading) {}
+
+	rpc setUnit(UnitRequest) returns (Empty) {
+		option (google.api.http) = {
+			post: "/unit"
+			body: "*"
+		};
+	}
 }
 
 message TemperatureReading {
