@@ -55,6 +55,20 @@ class RPCClient extends $grpc.Client {
     return $createUnaryCall(_$setUnit, request, options: options);
   }
 
+  $grpc.ResponseFuture<$0.Empty> setTimezone(
+    $0.TimezoneRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$setTimezone, request, options: options);
+  }
+
+  $grpc.ResponseFuture<$0.TimezoneList> getTimezones(
+    $0.Empty request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$getTimezones, request, options: options);
+  }
+
   // method descriptors
 
   static final _$sendTemperature =
@@ -71,6 +85,14 @@ class RPCClient extends $grpc.Client {
       '/ThermostatNerves.RPC/setUnit',
       ($0.UnitRequest value) => value.writeToBuffer(),
       $0.Empty.fromBuffer);
+  static final _$setTimezone = $grpc.ClientMethod<$0.TimezoneRequest, $0.Empty>(
+      '/ThermostatNerves.RPC/setTimezone',
+      ($0.TimezoneRequest value) => value.writeToBuffer(),
+      $0.Empty.fromBuffer);
+  static final _$getTimezones = $grpc.ClientMethod<$0.Empty, $0.TimezoneList>(
+      '/ThermostatNerves.RPC/getTimezones',
+      ($0.Empty value) => value.writeToBuffer(),
+      $0.TimezoneList.fromBuffer);
 }
 
 @$pb.GrpcServiceName('ThermostatNerves.RPC')
@@ -99,6 +121,20 @@ abstract class RPCServiceBase extends $grpc.Service {
         false,
         ($core.List<$core.int> value) => $0.UnitRequest.fromBuffer(value),
         ($0.Empty value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.TimezoneRequest, $0.Empty>(
+        'setTimezone',
+        setTimezone_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) => $0.TimezoneRequest.fromBuffer(value),
+        ($0.Empty value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.Empty, $0.TimezoneList>(
+        'getTimezones',
+        getTimezones_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) => $0.Empty.fromBuffer(value),
+        ($0.TimezoneList value) => value.writeToBuffer()));
   }
 
   $async.Future<$0.TemperatureReading> sendTemperature_Pre(
@@ -124,4 +160,20 @@ abstract class RPCServiceBase extends $grpc.Service {
 
   $async.Future<$0.Empty> setUnit(
       $grpc.ServiceCall call, $0.UnitRequest request);
+
+  $async.Future<$0.Empty> setTimezone_Pre($grpc.ServiceCall $call,
+      $async.Future<$0.TimezoneRequest> $request) async {
+    return setTimezone($call, await $request);
+  }
+
+  $async.Future<$0.Empty> setTimezone(
+      $grpc.ServiceCall call, $0.TimezoneRequest request);
+
+  $async.Future<$0.TimezoneList> getTimezones_Pre(
+      $grpc.ServiceCall $call, $async.Future<$0.Empty> $request) async {
+    return getTimezones($call, await $request);
+  }
+
+  $async.Future<$0.TimezoneList> getTimezones(
+      $grpc.ServiceCall call, $0.Empty request);
 }

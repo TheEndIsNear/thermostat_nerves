@@ -31,6 +31,29 @@ defmodule ThermostatNerves.Server do
     %ThermostatNerves.Empty{}
   end
 
+  @doc """
+  Unary RPC: sets the device timezone to the given IANA timezone string.
+  Applies immediately via NervesTimeZones.
+  """
+  def set_timezone(%ThermostatNerves.TimezoneRequest{timezone: timezone}, _stream) do
+    if NervesTimeZones.valid_time_zone?(timezone) do
+      NervesTimeZones.set_time_zone(timezone)
+    else
+      raise GRPC.RPCError,
+        status: :invalid_argument,
+        message: "Unknown timezone: #{timezone}"
+    end
+
+    %ThermostatNerves.Empty{}
+  end
+
+  @doc """
+  Unary RPC: returns the list of all known IANA timezone strings from the device.
+  """
+  def get_timezones(_request, _stream) do
+    %ThermostatNerves.TimezoneList{timezones: NervesTimeZones.time_zones()}
+  end
+
   defp stream_loop(stream) do
     reading = read_temperature()
     GRPC.Server.send_reply(stream, reading)

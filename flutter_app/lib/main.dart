@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:grpc/grpc.dart';
 
-import 'generated/temperature.pb.dart';
 import 'generated/temperature.pbgrpc.dart';
 
 void main() {
@@ -30,6 +29,10 @@ class ThermostatApp extends StatelessWidget {
     );
   }
 }
+
+// ---------------------------------------------------------------------------
+// Home screen
+// ---------------------------------------------------------------------------
 
 class TemperaturePage extends StatefulWidget {
   const TemperaturePage({super.key});
@@ -112,9 +115,15 @@ class _TemperaturePageState extends State<TemperaturePage> {
   void dispose() {
     _subscription?.cancel();
     _channel.shutdown();
-
     _timer?.cancel();
     super.dispose();
+  }
+
+  void _openSettings() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => SettingsPage(stub: _stub)),
+    );
   }
 
   String _formatTemperature() {
@@ -130,12 +139,218 @@ class _TemperaturePageState extends State<TemperaturePage> {
         "${twoDigits(_currentTime.second)}";
   }
 
-  Future<void> _setUnit(String unit) async {
-    setState(() => _unit = unit);
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFF1A1A2E),
+      body: GestureDetector(
+        onLongPress: _openSettings,
+        behavior: HitTestBehavior.opaque,
+        child: Stack(
+          children: [
+            Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Status indicator
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 10,
+                        height: 10,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color:
+                              _connected
+                                  ? Colors.greenAccent
+                                  : Colors.redAccent,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        _connected ? 'Live' : 'Connecting...',
+                        style: TextStyle(
+                          color:
+                              _connected
+                                  ? Colors.greenAccent
+                                  : Colors.redAccent,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  // Current Time
+                  Text(
+                    _formatTime(),
+                    style: const TextStyle(
+                      color: Colors.white70,
+                      fontSize: 48,
+                      fontWeight: FontWeight.w300,
+                    ),
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  // Temperature reading
+                  Text(
+                    '${_formatTemperature()} °$_unit',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 72,
+                      fontWeight: FontWeight.w300,
+                    ),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // Label
+                  const Text(
+                    'Room Temperature',
+                    style: TextStyle(color: Colors.white54, fontSize: 20),
+                  ),
+
+                  // Error message
+                  if (_error != null) ...[
+                    const SizedBox(height: 16),
+                    Text(
+                      _error!,
+                      style: const TextStyle(
+                        color: Colors.orangeAccent,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+
+            // Settings icon — top-right corner
+            Positioned(
+              top: 16,
+              right: 16,
+              child: IconButton(
+                icon: const Icon(Icons.settings, color: Colors.white54),
+                iconSize: 28,
+                tooltip: 'Settings',
+                onPressed: _openSettings,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Settings screen
+// ---------------------------------------------------------------------------
+
+class SettingsPage extends StatefulWidget {
+  final RPCClient stub;
+
+  const SettingsPage({super.key, required this.stub});
+
+  @override
+  State<SettingsPage> createState() => _SettingsPageState();
+}
+
+class _SettingsPageState extends State<SettingsPage> {
+  // Unit
+  String _unit = 'C';
+  bool _unitBusy = false;
+
+  // Timezone
+  List<String> _timezones = [];
+  String? _selectedTimezone;
+  bool _timezonesBusy = true;
+  bool _timezoneSaving = false;
+  String? _timezoneError;
+
+  // Search
+  final TextEditingController _searchController = TextEditingController();
+  List<String> _filteredTimezones = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadTimezones();
+    _searchController.addListener(_onSearchChanged);
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _onSearchChanged() {
+    final query = _searchController.text.toLowerCase();
+    setState(() {
+      _filteredTimezones =
+          query.isEmpty
+              ? _timezones
+              : _timezones
+                  .where((tz) => tz.toLowerCase().contains(query))
+                  .toList();
+    });
+  }
+
+  Future<void> _loadTimezones() async {
     try {
-      await _stub.setUnit(UnitRequest(unit: unit));
+      final response = await widget.stub.getTimezones(Empty());
+      if (!mounted) return;
+      setState(() {
+        _timezones = response.timezones;
+        _filteredTimezones = response.timezones;
+        _timezonesBusy = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _timezoneError = 'Could not load timezones.';
+        _timezonesBusy = false;
+      });
+    }
+  }
+
+  Future<void> _setUnit(String unit) async {
+    setState(() => _unitBusy = true);
+    try {
+      await widget.stub.setUnit(UnitRequest(unit: unit));
+      if (!mounted) return;
+      setState(() {
+        _unit = unit;
+        _unitBusy = false;
+      });
     } catch (_) {
-      // The stream will self-correct on next push; no further action needed.
+      if (!mounted) return;
+      setState(() => _unitBusy = false);
+    }
+  }
+
+  Future<void> _setTimezone(String timezone) async {
+    setState(() {
+      _timezoneSaving = true;
+      _timezoneError = null;
+    });
+    try {
+      await widget.stub.setTimezone(TimezoneRequest(timezone: timezone));
+      if (!mounted) return;
+      setState(() {
+        _selectedTimezone = timezone;
+        _timezoneSaving = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _timezoneError = 'Failed to set timezone.';
+        _timezoneSaving = false;
+      });
     }
   }
 
@@ -143,97 +358,143 @@ class _TemperaturePageState extends State<TemperaturePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF1A1A2E),
-      body: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Status indicator
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 10,
-                  height: 10,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: _connected ? Colors.greenAccent : Colors.redAccent,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  _connected ? 'Live' : 'Connecting...',
-                  style: TextStyle(
-                    color: _connected ? Colors.greenAccent : Colors.redAccent,
-                    fontSize: 16,
-                  ),
-                ),
-              ],
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF1A1A2E),
+        foregroundColor: Colors.white,
+        title: const Text('Settings'),
+        elevation: 0,
+      ),
+      body: ListView(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+        children: [
+          // ----------------------------------------------------------------
+          // Temperature unit
+          // ----------------------------------------------------------------
+          const Text(
+            'TEMPERATURE UNIT',
+            style: TextStyle(
+              color: Colors.white70,
+              fontSize: 12,
+              letterSpacing: 1.2,
             ),
+          ),
+          const SizedBox(height: 12),
+          _unitBusy
+              ? const Center(
+                child: SizedBox(
+                  height: 36,
+                  width: 36,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              )
+              : SegmentedButton<String>(
+                segments: const [
+                  ButtonSegment(value: 'C', label: Text('°C  Celsius')),
+                  ButtonSegment(value: 'F', label: Text('°F  Fahrenheit')),
+                ],
+                selected: {_unit},
+                onSelectionChanged: (selection) => _setUnit(selection.first),
+              ),
 
-            const SizedBox(height: 24),
+          const SizedBox(height: 36),
 
-            // Current Time
-            Text(
-              _formatTime(),
-              style: const TextStyle(
-                color: Colors.white70,
-                fontSize: 48,
-                fontWeight: FontWeight.w300,
+          // ----------------------------------------------------------------
+          // Timezone
+          // ----------------------------------------------------------------
+          const Text(
+            'TIMEZONE',
+            style: TextStyle(
+              color: Colors.white70,
+              fontSize: 12,
+              letterSpacing: 1.2,
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          if (_selectedTimezone != null)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Text(
+                'Current: $_selectedTimezone',
+                style: const TextStyle(color: Colors.white54, fontSize: 13),
               ),
             ),
 
-            const SizedBox(height: 24),
-
-            // Temperature reading — tap the unit to toggle C/F
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.baseline,
-              textBaseline: TextBaseline.alphabetic,
-              children: [
-                Text(
-                  '${_formatTemperature()} °',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 72,
-                    fontWeight: FontWeight.w300,
-                  ),
-                ),
-                GestureDetector(
-                  onTap: () => _setUnit(_unit == 'C' ? 'F' : 'C'),
-                  child: Text(
-                    _unit,
-                    style: const TextStyle(
-                      color: Colors.blueAccent,
-                      fontSize: 72,
-                      fontWeight: FontWeight.w300,
-                      decoration: TextDecoration.underline,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 16),
-
-            // Label
-            Text(
-              'Room Temperature',
-              style: const TextStyle(color: Colors.white54, fontSize: 20),
-            ),
-
-            // Error message
-            if (_error != null) ...[
-              const SizedBox(height: 16),
-              Text(
-                _error!,
-                style: const TextStyle(
-                  color: Colors.orangeAccent,
-                  fontSize: 14,
-                ),
+          if (_timezoneError != null)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Text(
+                _timezoneError!,
+                style: const TextStyle(color: Colors.orangeAccent),
               ),
-            ],
-          ],
-        ),
+            ),
+
+          // Search field
+          TextField(
+            controller: _searchController,
+            style: const TextStyle(color: Colors.white),
+            decoration: InputDecoration(
+              hintText: 'Search timezones...',
+              hintStyle: const TextStyle(color: Colors.white38),
+              prefixIcon: const Icon(Icons.search, color: Colors.white38),
+              filled: true,
+              fillColor: Colors.white10,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide.none,
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 8),
+
+          // Timezone list
+          if (_timezonesBusy)
+            const Center(child: CircularProgressIndicator())
+          else
+            Container(
+              height: 320,
+              decoration: BoxDecoration(
+                color: Colors.white10,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child:
+                  _timezoneSaving
+                      ? const Center(child: CircularProgressIndicator())
+                      : ListView.builder(
+                        itemCount: _filteredTimezones.length,
+                        itemBuilder: (context, index) {
+                          final tz = _filteredTimezones[index];
+                          final isSelected = tz == _selectedTimezone;
+                          return ListTile(
+                            dense: true,
+                            title: Text(
+                              tz,
+                              style: TextStyle(
+                                color:
+                                    isSelected
+                                        ? Colors.blueAccent
+                                        : Colors.white,
+                                fontWeight:
+                                    isSelected
+                                        ? FontWeight.bold
+                                        : FontWeight.normal,
+                              ),
+                            ),
+                            trailing:
+                                isSelected
+                                    ? const Icon(
+                                      Icons.check,
+                                      color: Colors.blueAccent,
+                                      size: 18,
+                                    )
+                                    : null,
+                            onTap: () => _setTimezone(tz),
+                          );
+                        },
+                      ),
+            ),
+        ],
       ),
     );
   }

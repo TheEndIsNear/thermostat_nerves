@@ -24,6 +24,42 @@ const Empty$json = {
 final $typed_data.Uint8List emptyDescriptor =
     $convert.base64Decode('CgVFbXB0eQ==');
 
+@$core.Deprecated('Use unitRequestDescriptor instead')
+const UnitRequest$json = {
+  '1': 'UnitRequest',
+  '2': [
+    {'1': 'unit', '3': 1, '4': 1, '5': 9, '10': 'unit'},
+  ],
+};
+
+/// Descriptor for `UnitRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List unitRequestDescriptor =
+    $convert.base64Decode('CgtVbml0UmVxdWVzdBISCgR1bml0GAEgASgJUgR1bml0');
+
+@$core.Deprecated('Use timezoneRequestDescriptor instead')
+const TimezoneRequest$json = {
+  '1': 'TimezoneRequest',
+  '2': [
+    {'1': 'timezone', '3': 1, '4': 1, '5': 9, '10': 'timezone'},
+  ],
+};
+
+/// Descriptor for `TimezoneRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List timezoneRequestDescriptor = $convert.base64Decode(
+    'Cg9UaW1lem9uZVJlcXVlc3QSGgoIdGltZXpvbmUYASABKAlSCHRpbWV6b25l');
+
+@$core.Deprecated('Use timezoneListDescriptor instead')
+const TimezoneList$json = {
+  '1': 'TimezoneList',
+  '2': [
+    {'1': 'timezones', '3': 1, '4': 3, '5': 9, '10': 'timezones'},
+  ],
+};
+
+/// Descriptor for `TimezoneList`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List timezoneListDescriptor = $convert.base64Decode(
+    'CgxUaW1lem9uZUxpc3QSHAoJdGltZXpvbmVzGAEgAygJUgl0aW1lem9uZXM=');
+
 @$core.Deprecated('Use temperatureReadingDescriptor instead')
 const TemperatureReading$json = {
   '1': 'TemperatureReading',

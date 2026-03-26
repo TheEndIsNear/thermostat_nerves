@@ -109,6 +109,110 @@ class UnitRequest extends $pb.GeneratedMessage {
   void clearUnit() => $_clearField(1);
 }
 
+class TimezoneRequest extends $pb.GeneratedMessage {
+  factory TimezoneRequest({
+    $core.String? timezone,
+  }) {
+    final result = create();
+    if (timezone != null) result.timezone = timezone;
+    return result;
+  }
+
+  TimezoneRequest._();
+
+  factory TimezoneRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory TimezoneRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'TimezoneRequest',
+      package:
+          const $pb.PackageName(_omitMessageNames ? '' : 'ThermostatNerves'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'timezone')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  TimezoneRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  TimezoneRequest copyWith(void Function(TimezoneRequest) updates) =>
+      super.copyWith((message) => updates(message as TimezoneRequest))
+          as TimezoneRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static TimezoneRequest create() => TimezoneRequest._();
+  @$core.override
+  TimezoneRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static TimezoneRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<TimezoneRequest>(create);
+  static TimezoneRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get timezone => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set timezone($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasTimezone() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearTimezone() => $_clearField(1);
+}
+
+class TimezoneList extends $pb.GeneratedMessage {
+  factory TimezoneList({
+    $core.Iterable<$core.String>? timezones,
+  }) {
+    final result = create();
+    if (timezones != null) result.timezones.addAll(timezones);
+    return result;
+  }
+
+  TimezoneList._();
+
+  factory TimezoneList.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory TimezoneList.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'TimezoneList',
+      package:
+          const $pb.PackageName(_omitMessageNames ? '' : 'ThermostatNerves'),
+      createEmptyInstance: create)
+    ..pPS(1, _omitFieldNames ? '' : 'timezones')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  TimezoneList clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  TimezoneList copyWith(void Function(TimezoneList) updates) =>
+      super.copyWith((message) => updates(message as TimezoneList))
+          as TimezoneList;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static TimezoneList create() => TimezoneList._();
+  @$core.override
+  TimezoneList createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static TimezoneList getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<TimezoneList>(create);
+  static TimezoneList? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $pb.PbList<$core.String> get timezones => $_getList(0);
+}
+
 class TemperatureReading extends $pb.GeneratedMessage {
   factory TemperatureReading({
     $core.double? value,
