@@ -56,7 +56,7 @@ defmodule ThermostatNerves.MixProject do
       {:ds18b20_1w, "~> 0.1"},
       {:nerves_flutter_support, "~> 1.3"},
       {:grpc, "~> 0.11"},
-      {:protobuf, "~> 0.15"},
+      {:protobuf, "~> 0.16"},
       {:protobuf_generate, "~> 0.1"},
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false}

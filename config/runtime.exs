@@ -7,4 +7,4 @@ runtime_zone =
 config :nerves_time_zones,
   default_time_zone: runtime_zone
 
-import config("#{Mix.target()}.exs")
+# import config("#{Mix.target()}.exs")

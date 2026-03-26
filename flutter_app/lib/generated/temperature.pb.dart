@@ -54,6 +54,61 @@ class Empty extends $pb.GeneratedMessage {
   static Empty? _defaultInstance;
 }
 
+class UnitRequest extends $pb.GeneratedMessage {
+  factory UnitRequest({
+    $core.String? unit,
+  }) {
+    final result = create();
+    if (unit != null) result.unit = unit;
+    return result;
+  }
+
+  UnitRequest._();
+
+  factory UnitRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory UnitRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'UnitRequest',
+      package:
+          const $pb.PackageName(_omitMessageNames ? '' : 'ThermostatNerves'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'unit')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  UnitRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  UnitRequest copyWith(void Function(UnitRequest) updates) =>
+      super.copyWith((message) => updates(message as UnitRequest))
+          as UnitRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static UnitRequest create() => UnitRequest._();
+  @$core.override
+  UnitRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static UnitRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<UnitRequest>(create);
+  static UnitRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get unit => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set unit($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasUnit() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearUnit() => $_clearField(1);
+}
+
 class TemperatureReading extends $pb.GeneratedMessage {
   factory TemperatureReading({
     $core.double? value,
