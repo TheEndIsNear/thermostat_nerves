@@ -2,6 +2,10 @@ import Config
 
 # Add configuration that is only needed when running on the host here.
 
+# Prevent vintage_net from trying to write /etc/resolv.conf on the host.
+config :vintage_net,
+  resolvconf: "/tmp/resolv.conf"
+
 config :nerves_runtime,
   kv_backend:
     {Nerves.Runtime.KVBackend.InMemory,
