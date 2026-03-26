@@ -95,4 +95,49 @@ defmodule ThermostatNerves.ServerTest do
       assert fahrenheit_reading.unit == "F"
     end
   end
+
+  describe "set_timezone/2" do
+    test "accepts a valid IANA timezone and returns Empty" do
+      request = %ThermostatNerves.TimezoneRequest{timezone: "America/New_York"}
+      assert %ThermostatNerves.Empty{} = Server.set_timezone(request, nil)
+    end
+
+    test "accepts Etc/UTC and returns Empty" do
+      request = %ThermostatNerves.TimezoneRequest{timezone: "Etc/UTC"}
+      assert %ThermostatNerves.Empty{} = Server.set_timezone(request, nil)
+    end
+
+    test "raises a gRPC invalid_argument error for an unknown timezone" do
+      request = %ThermostatNerves.TimezoneRequest{timezone: "Not/ATimezone"}
+
+      assert_raise GRPC.RPCError, fn ->
+        Server.set_timezone(request, nil)
+      end
+    end
+  end
+
+  describe "get_timezones/2" do
+    test "returns a non-empty TimezoneList" do
+      response = Server.get_timezones(%ThermostatNerves.Empty{}, nil)
+
+      assert %ThermostatNerves.TimezoneList{timezones: timezones} = response
+      assert is_list(timezones)
+      assert timezones != []
+    end
+
+    test "returned list contains well-known IANA timezone strings" do
+      response = Server.get_timezones(%ThermostatNerves.Empty{}, nil)
+
+      assert "Etc/UTC" in response.timezones
+      assert "America/New_York" in response.timezones
+      assert "America/Denver" in response.timezones
+      assert "America/Los_Angeles" in response.timezones
+    end
+
+    test "all returned entries are strings" do
+      response = Server.get_timezones(%ThermostatNerves.Empty{}, nil)
+
+      assert Enum.all?(response.timezones, &is_binary/1)
+    end
+  end
 end

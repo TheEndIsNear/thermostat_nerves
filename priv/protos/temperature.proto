@@ -10,6 +10,14 @@ message UnitRequest {
 	string unit = 1;  // "C" for Celsius, "F" for Fahrenheit
 }
 
+message TimezoneRequest {
+	string timezone = 1;  // IANA timezone string e.g. "America/Denver"
+}
+
+message TimezoneList {
+	repeated string timezones = 1;
+}
+
 service RPC {
 	rpc sendTemperature(Empty) returns (TemperatureReading) {
 		option (google.api.http) = {
@@ -23,6 +31,19 @@ service RPC {
 		option (google.api.http) = {
 			post: "/unit"
 			body: "*"
+		};
+	}
+
+	rpc setTimezone(TimezoneRequest) returns (Empty) {
+		option (google.api.http) = {
+			post: "/timezone"
+			body: "*"
+		};
+	}
+
+	rpc getTimezones(Empty) returns (TimezoneList) {
+		option (google.api.http) = {
+			get: "/timezones"
 		};
 	}
 }

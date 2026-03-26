@@ -10,6 +10,20 @@ defmodule ThermostatNerves.UnitRequest do
   field :unit, 1, type: :string
 end
 
+defmodule ThermostatNerves.TimezoneRequest do
+  @moduledoc false
+  use Protobuf, protoc_gen_elixir_version: "0.16.0", syntax: :proto3
+
+  field :timezone, 1, type: :string
+end
+
+defmodule ThermostatNerves.TimezoneList do
+  @moduledoc false
+  use Protobuf, protoc_gen_elixir_version: "0.16.0", syntax: :proto3
+
+  field :timezones, 1, repeated: true, type: :string
+end
+
 defmodule ThermostatNerves.TemperatureReading do
   @moduledoc false
   use Protobuf, protoc_gen_elixir_version: "0.16.0", syntax: :proto3
@@ -52,6 +66,34 @@ defmodule ThermostatNerves.RPC.Service do
         additional_bindings: [],
         response_body: "",
         pattern: {:post, "/unit"},
+        __unknown_fields__: []
+      }
+    }
+  })
+
+  rpc(:setTimezone, ThermostatNerves.TimezoneRequest, ThermostatNerves.Empty, %{
+    http: %{
+      type: Google.Api.PbExtension,
+      value: %Google.Api.HttpRule{
+        selector: "",
+        body: "*",
+        additional_bindings: [],
+        response_body: "",
+        pattern: {:post, "/timezone"},
+        __unknown_fields__: []
+      }
+    }
+  })
+
+  rpc(:getTimezones, ThermostatNerves.Empty, ThermostatNerves.TimezoneList, %{
+    http: %{
+      type: Google.Api.PbExtension,
+      value: %Google.Api.HttpRule{
+        selector: "",
+        body: "",
+        additional_bindings: [],
+        response_body: "",
+        pattern: {:get, "/timezones"},
         __unknown_fields__: []
       }
     }
