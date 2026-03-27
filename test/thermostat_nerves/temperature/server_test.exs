@@ -94,6 +94,14 @@ defmodule ThermostatNerves.ServerTest do
       assert_in_delta fahrenheit_reading.value, 68.0, 0.01
       assert fahrenheit_reading.unit == "F"
     end
+
+    test "reading includes a utc_offset_seconds integer field" do
+      PropertyTable.put(SensorTable, ["temperature"], 20.0)
+
+      reading = Server.send_temperature(%ThermostatNerves.Empty{}, nil)
+
+      assert is_integer(reading.utc_offset_seconds)
+    end
   end
 
   describe "set_timezone/2" do
