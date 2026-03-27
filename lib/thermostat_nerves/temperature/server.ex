@@ -73,8 +73,18 @@ defmodule ThermostatNerves.Server do
 
     %ThermostatNerves.TemperatureReading{
       value: value,
-      unit: unit
+      unit: unit,
+      utc_offset_seconds: utc_offset_seconds()
     }
+  end
+
+  defp utc_offset_seconds do
+    tz = NervesTimeZones.get_time_zone()
+
+    case DateTime.now(tz, Zoneinfo.TimeZoneDatabase) do
+      {:ok, dt} -> dt.utc_offset + dt.std_offset
+      _ -> 0
+    end
   end
 
   defp celsius_to_fahrenheit(celsius), do: celsius * 9 / 5 + 32

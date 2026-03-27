@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:grpc/grpc.dart';
+import 'package:virtual_keyboard_multi_language/virtual_keyboard_multi_language.dart';
 
 import 'generated/temperature.pbgrpc.dart';
 
@@ -44,6 +45,7 @@ class TemperaturePage extends StatefulWidget {
 class _TemperaturePageState extends State<TemperaturePage> {
   double? _temperature;
   String _unit = 'C';
+  int _utcOffsetSeconds = 0;
   String? _error;
   bool _connected = false;
 
@@ -51,7 +53,6 @@ class _TemperaturePageState extends State<TemperaturePage> {
   late RPCClient _stub;
   StreamSubscription<TemperatureReading>? _subscription;
 
-  DateTime _currentTime = DateTime.now();
   late Timer? _timer;
 
   @override
@@ -60,9 +61,7 @@ class _TemperaturePageState extends State<TemperaturePage> {
     _connect();
 
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      setState(() {
-        _currentTime = DateTime.now();
-      });
+      if (mounted) setState(() {});
     });
   }
 
@@ -88,6 +87,7 @@ class _TemperaturePageState extends State<TemperaturePage> {
         setState(() {
           _temperature = reading.value;
           _unit = reading.unit;
+          _utcOffsetSeconds = reading.utcOffsetSeconds;
           _connected = true;
           _error = null;
         });
@@ -122,7 +122,9 @@ class _TemperaturePageState extends State<TemperaturePage> {
   void _openSettings() {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => SettingsPage(stub: _stub)),
+      MaterialPageRoute(
+        builder: (_) => SettingsPage(stub: _stub, currentUnit: _unit),
+      ),
     );
   }
 
@@ -134,9 +136,13 @@ class _TemperaturePageState extends State<TemperaturePage> {
   String _formatTime() {
     String twoDigits(int n) => n.toString().padLeft(2, '0');
 
-    return "${twoDigits(_currentTime.hour)}:"
-        "${twoDigits(_currentTime.minute)}:"
-        "${twoDigits(_currentTime.second)}";
+    final local = DateTime.now().toUtc().add(
+      Duration(seconds: _utcOffsetSeconds),
+    );
+
+    return "${twoDigits(local.hour)}:"
+        "${twoDigits(local.minute)}:"
+        "${twoDigits(local.second)}";
   }
 
   @override
@@ -252,8 +258,13 @@ class _TemperaturePageState extends State<TemperaturePage> {
 
 class SettingsPage extends StatefulWidget {
   final RPCClient stub;
+  final String currentUnit;
 
-  const SettingsPage({super.key, required this.stub});
+  const SettingsPage({
+    super.key,
+    required this.stub,
+    required this.currentUnit,
+  });
 
   @override
   State<SettingsPage> createState() => _SettingsPageState();
@@ -261,7 +272,7 @@ class SettingsPage extends StatefulWidget {
 
 class _SettingsPageState extends State<SettingsPage> {
   // Unit
-  String _unit = 'C';
+  late String _unit;
   bool _unitBusy = false;
 
   // Timezone
@@ -274,10 +285,67 @@ class _SettingsPageState extends State<SettingsPage> {
   // Search
   final TextEditingController _searchController = TextEditingController();
   List<String> _filteredTimezones = [];
+  bool _shiftEnabled = false;
+
+  void _showKeyboard() {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: const Color(0xFF16213E),
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setModalState) {
+            return VirtualKeyboard(
+              height: 300,
+              textColor: Colors.white,
+              fontSize: 16,
+              type: VirtualKeyboardType.Alphanumeric,
+              defaultLayouts: const [VirtualKeyboardDefaultLayouts.English],
+              postKeyPress: (key) {
+                if (key.keyType == VirtualKeyboardKeyType.String) {
+                  final char =
+                      _shiftEnabled ? (key.capsText ?? '') : (key.text ?? '');
+                  _searchController.text = _searchController.text + char;
+                  _searchController.selection = TextSelection.collapsed(
+                    offset: _searchController.text.length,
+                  );
+                } else if (key.keyType == VirtualKeyboardKeyType.Action) {
+                  switch (key.action) {
+                    case VirtualKeyboardKeyAction.Backspace:
+                      final text = _searchController.text;
+                      if (text.isNotEmpty) {
+                        _searchController.text = text.substring(
+                          0,
+                          text.length - 1,
+                        );
+                        _searchController.selection = TextSelection.collapsed(
+                          offset: _searchController.text.length,
+                        );
+                      }
+                    case VirtualKeyboardKeyAction.Space:
+                      _searchController.text = '${_searchController.text} ';
+                      _searchController.selection = TextSelection.collapsed(
+                        offset: _searchController.text.length,
+                      );
+                    case VirtualKeyboardKeyAction.Return:
+                      Navigator.pop(ctx);
+                    case VirtualKeyboardKeyAction.Shift:
+                      setModalState(() => _shiftEnabled = !_shiftEnabled);
+                    default:
+                      break;
+                  }
+                }
+              },
+            );
+          },
+        );
+      },
+    );
+  }
 
   @override
   void initState() {
     super.initState();
+    _unit = widget.currentUnit;
     _loadTimezones();
     _searchController.addListener(_onSearchChanged);
   }
@@ -432,6 +500,8 @@ class _SettingsPageState extends State<SettingsPage> {
           // Search field
           TextField(
             controller: _searchController,
+            readOnly: true,
+            onTap: _showKeyboard,
             style: const TextStyle(color: Colors.white),
             decoration: InputDecoration(
               hintText: 'Search timezones...',

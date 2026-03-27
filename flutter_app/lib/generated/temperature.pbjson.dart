@@ -66,10 +66,17 @@ const TemperatureReading$json = {
   '2': [
     {'1': 'value', '3': 1, '4': 1, '5': 2, '10': 'value'},
     {'1': 'unit', '3': 2, '4': 1, '5': 9, '10': 'unit'},
+    {
+      '1': 'utc_offset_seconds',
+      '3': 3,
+      '4': 1,
+      '5': 5,
+      '10': 'utcOffsetSeconds'
+    },
   ],
 };
 
 /// Descriptor for `TemperatureReading`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List temperatureReadingDescriptor = $convert.base64Decode(
     'ChJUZW1wZXJhdHVyZVJlYWRpbmcSFAoFdmFsdWUYASABKAJSBXZhbHVlEhIKBHVuaXQYAiABKA'
-    'lSBHVuaXQ=');
+    'lSBHVuaXQSLAoSdXRjX29mZnNldF9zZWNvbmRzGAMgASgFUhB1dGNPZmZzZXRTZWNvbmRz');

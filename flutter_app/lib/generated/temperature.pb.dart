@@ -217,10 +217,12 @@ class TemperatureReading extends $pb.GeneratedMessage {
   factory TemperatureReading({
     $core.double? value,
     $core.String? unit,
+    $core.int? utcOffsetSeconds,
   }) {
     final result = create();
     if (value != null) result.value = value;
     if (unit != null) result.unit = unit;
+    if (utcOffsetSeconds != null) result.utcOffsetSeconds = utcOffsetSeconds;
     return result;
   }
 
@@ -240,6 +242,7 @@ class TemperatureReading extends $pb.GeneratedMessage {
       createEmptyInstance: create)
     ..aD(1, _omitFieldNames ? '' : 'value', fieldType: $pb.PbFieldType.OF)
     ..aOS(2, _omitFieldNames ? '' : 'unit')
+    ..aI(3, _omitFieldNames ? '' : 'utcOffsetSeconds')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -278,6 +281,15 @@ class TemperatureReading extends $pb.GeneratedMessage {
   $core.bool hasUnit() => $_has(1);
   @$pb.TagNumber(2)
   void clearUnit() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.int get utcOffsetSeconds => $_getIZ(2);
+  @$pb.TagNumber(3)
+  set utcOffsetSeconds($core.int value) => $_setSignedInt32(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasUtcOffsetSeconds() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearUtcOffsetSeconds() => $_clearField(3);
 }
 
 const $core.bool _omitFieldNames =

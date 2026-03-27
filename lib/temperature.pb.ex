@@ -30,6 +30,7 @@ defmodule ThermostatNerves.TemperatureReading do
 
   field :value, 1, type: :float
   field :unit, 2, type: :string
+  field :utc_offset_seconds, 3, type: :int32, json_name: "utcOffsetSeconds"
 end
 
 defmodule ThermostatNerves.RPC.Service do
