@@ -12,10 +12,14 @@ defmodule ThermostatNerves.MixProject do
       elixir: "~> 1.18",
       archives: [nerves_bootstrap: "~> 1.13"],
       start_permanent: Mix.env() == :prod,
+      elixirc_paths: elixirc_paths(Mix.env()),
       deps: deps(),
       releases: [{@app, release()}]
     ]
   end
+
+  defp elixirc_paths(:test), do: ["lib", "test/support"]
+  defp elixirc_paths(_), do: ["lib"]
 
   def cli do
     [preferred_targets: [run: :host, test: :host]]

@@ -23,3 +23,7 @@ config :nerves_runtime,
        "a.nerves_fw_platform" => "host",
        "a.nerves_fw_version" => "0.0.0"
      }}
+
+if Mix.env() == :test do
+  import_config "test.exs"
+end
