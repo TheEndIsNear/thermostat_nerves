@@ -9,15 +9,16 @@ defmodule ThermostatNerves.Application do
   @impl Application
   def start(_type, _args) do
     children =
-      [
-        # Children for all targets
-        # Starts a worker by calling: ThermostatNerves.Worker.start_link(arg)
-        # {ThermostatNerves.Worker, arg},
-        {PropertyTable, name: SensorTable},
-        ThermostatNerves.Sensors.TemperatureSensor,
-        {GRPC.Server.Supervisor,
-         endpoint: ThermostatNerves.Endpoint, port: 50_051, start_server: true}
-      ] ++ target_children()
+      test_children() ++
+        [
+          # Children for all targets
+          # Starts a worker by calling: ThermostatNerves.Worker.start_link(arg)
+          # {ThermostatNerves.Worker, arg},
+          {PropertyTable, name: SensorTable},
+          ThermostatNerves.Sensors.TemperatureSensor,
+          {GRPC.Server.Supervisor,
+           endpoint: ThermostatNerves.Endpoint, port: 50_051, start_server: true}
+        ] ++ target_children()
 
     # See https://hexdocs.pm/elixir/Supervisor.html
     # for other strategies and supported options
@@ -32,11 +33,15 @@ defmodule ThermostatNerves.Application do
   end
 
   # List all child processes to be supervised
+  if Mix.env() == :test do
+    defp test_children, do: [ThermostatNerves.Sensors.StubSensorAdapter]
+  else
+    defp test_children, do: []
+  end
+
   if Mix.target() == :host do
     defp target_children do
-      [
-        # Children that only run on the host during development or test.
-      ]
+      []
     end
   else
     alias NervesFlutterSupport.Flutter.Engine

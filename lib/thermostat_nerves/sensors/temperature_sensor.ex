@@ -7,6 +7,8 @@ defmodule ThermostatNerves.Sensors.TemperatureSensor do
 
   require Logger
 
+  @adapter Application.compile_env(:thermostat_nerves, :sensor_adapter, Ds18b20_1w)
+
   def start_link(_) do
     GenServer.start_link(__MODULE__, name: __MODULE__)
   end
@@ -35,7 +37,7 @@ defmodule ThermostatNerves.Sensors.TemperatureSensor do
   end
 
   defp list_sensor do
-    case Ds18b20_1w.list_sensors() do
+    case @adapter.list_sensors() do
       [sensor_path] ->
         sensor_path
 
@@ -46,7 +48,7 @@ defmodule ThermostatNerves.Sensors.TemperatureSensor do
   end
 
   defp read_sensor(sensor_path) do
-    case Ds18b20_1w.read_temperature_file(sensor_path) do
+    case @adapter.read_temperature_file(sensor_path) do
       {:ok, _, temp} ->
         PropertyTable.put(SensorTable, ["temperature"], temp)
 
